@@ -1,0 +1,176 @@
+{
+ "v": 1,
+ "app": "arduino-lab",
+ "savedAt": "2026-08-30T08:00:03.855Z",
+ "board": "nano",
+ "power": true,
+ "pinHigh": {
+  "D13": false,
+  "D12": false,
+  "D11": false,
+  "D10": false,
+  "D9": false,
+  "D8": false,
+  "D7": false,
+  "D6": false,
+  "D5": true,
+  "D4": false,
+  "D3": false,
+  "D2": false,
+  "GND_D": false
+ },
+ "leds": [],
+ "resistors": [
+  {
+   "value": 1000,
+   "colA": 1,
+   "row": "a",
+   "holeA": "T1a",
+   "holeB": "T2a"
+  }
+ ],
+ "caps": [],
+ "diodes": [
+  {
+   "colA": 3,
+   "row": "a",
+   "holeA": "T3a",
+   "holeB": "T4a",
+   "flipped": false
+  }
+ ],
+ "buttons": [],
+ "modules": [
+  {
+   "id": "m1",
+   "type": "battery",
+   "x": -9.9,
+   "z": 5.6,
+   "rot": 0
+  },
+  {
+   "id": "m2",
+   "type": "charger",
+   "x": -7.2,
+   "z": 5.9,
+   "rot": 0
+  },
+  {
+   "id": "m3",
+   "type": "hc05",
+   "x": 3.2,
+   "z": 4.8,
+   "rot": 0
+  },
+  {
+   "id": "m4",
+   "type": "reed",
+   "x": 5.6,
+   "z": 4.1,
+   "rot": 0
+  },
+  {
+   "id": "m5",
+   "type": "panic",
+   "x": 7.7,
+   "z": 2.4,
+   "rot": 0
+  },
+  {
+   "id": "m6",
+   "type": "driver",
+   "x": 6.2,
+   "z": -4.4,
+   "rot": 0
+  },
+  {
+   "id": "m7",
+   "type": "phone",
+   "x": 9.8,
+   "z": 4.4,
+   "rot": 0
+  }
+ ],
+ "wires": [
+  {
+   "a": "M:m1:V+",
+   "b": "M:m2:B+"
+  },
+  {
+   "a": "M:m1:V-",
+   "b": "M:m2:B-"
+  },
+  {
+   "a": "M:m2:5V",
+   "b": "P:5V"
+  },
+  {
+   "a": "M:m2:GND",
+   "b": "P:GND_P"
+  },
+  {
+   "a": "M:m2:5V",
+   "b": "M:m3:VCC"
+  },
+  {
+   "a": "M:m2:GND",
+   "b": "M:m3:GND"
+  },
+  {
+   "a": "M:m3:TXD",
+   "b": "P:D11"
+  },
+  {
+   "a": "P:D10",
+   "b": "M:m3:RXD"
+  },
+  {
+   "a": "M:m2:5V",
+   "b": "M:m4:VCC"
+  },
+  {
+   "a": "M:m2:GND",
+   "b": "M:m4:GND"
+  },
+  {
+   "a": "M:m4:OUT",
+   "b": "P:D2"
+  },
+  {
+   "a": "M:m2:5V",
+   "b": "M:m5:VCC"
+  },
+  {
+   "a": "M:m2:GND",
+   "b": "M:m5:GND"
+  },
+  {
+   "a": "M:m5:SIG",
+   "b": "P:D3"
+  },
+  {
+   "a": "P:D5",
+   "b": "T1a"
+  },
+  {
+   "a": "T2a",
+   "b": "M:m6:IN"
+  },
+  {
+   "a": "M:m2:5V",
+   "b": "M:m6:VCC"
+  },
+  {
+   "a": "M:m2:GND",
+   "b": "M:m6:GND"
+  },
+  {
+   "a": "M:m6:M+",
+   "b": "T4a"
+  },
+  {
+   "a": "T3a",
+   "b": "M:m2:GND"
+  }
+ ]
+}
