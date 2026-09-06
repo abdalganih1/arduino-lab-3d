@@ -475,6 +475,7 @@ body.panel-hidden #viewport{flex:1!important;width:100%!important}
   <button class="tb-btn" id="shotBtn" title="لقطة شاشة PNG">📷</button>
   <button class="tb-btn" id="shareBtn" title="رابط مشاركة الدارة">🔗</button>
   <button class="tb-btn" id="curBtn">📚 المنهج</button>
+  <button class="tb-btn" id="simMatBtn" title="مصفوفة محاكاة كل عنصر">📊 مصفوفة</button>
   <button class="tb-btn" id="undoBtn" title="تراجع (Ctrl+Z)">↩</button>
   <button class="tb-btn" id="langBtn" title="English / العربية" style="font-weight:800">EN</button>
   <button class="tb-btn" id="settingsBtn">⚙</button>
@@ -584,6 +585,20 @@ body.panel-hidden #viewport{flex:1!important;width:100%!important}
           <div class="val-row" style="width:100%;font-weight:700;color:var(--teal-deep)">🔌 الحساسات والمحركات — موديولات جاهزة توصلها بأسلاك</div>
         </div>
         <div class="kit-row">
+          <button class="kit-btn" id="mod-vsrc" style="font-size:12px;padding:8px 10px">⚡ منبع جهد</button>
+          <button class="kit-btn" id="mod-isrc" style="font-size:12px;padding:8px 10px">🔌 منبع تيار</button>
+          <button class="kit-btn" id="mod-pot" style="font-size:12px;padding:8px 10px">🎚 بوتانشيومتر</button>
+          <button class="kit-btn" id="mod-ldr" style="font-size:12px;padding:8px 10px">☀️ حساس ضوء</button>
+          <button class="kit-btn" id="mod-therm" style="font-size:12px;padding:8px 10px">🌡 حساس حرارة</button>
+          <button class="kit-btn" id="mod-ir" style="font-size:12px;padding:8px 10px">🚧 حساس IR</button>
+          <button class="kit-btn" id="mod-pir" style="font-size:12px;padding:8px 10px">🖐 حساس حركة</button>
+          <button class="kit-btn" id="mod-mpu" style="font-size:12px;padding:8px 10px">🌀 جيرو MPU</button>
+          <button class="kit-btn" id="mod-opamp" style="font-size:12px;padding:8px 10px">🔺 LM358</button>
+          <button class="kit-btn" id="mod-buzzer" style="font-size:12px;padding:8px 10px">🔊 جرس</button>
+          <button class="kit-btn" id="mod-rgb" style="font-size:12px;padding:8px 10px">🌈 ليد RGB</button>
+          <button class="kit-btn" id="mod-npn" style="font-size:12px;padding:8px 10px">🧲 ترانزستور</button>
+          <button class="kit-btn" id="mod-tmp36" style="font-size:12px;padding:8px 10px">🌡 TMP36</button>
+          <button class="kit-btn" id="mod-sevenseg" style="font-size:12px;padding:8px 10px">🔢 7 مقاطع</button>
           <button class="kit-btn" id="mod-ultra" style="font-size:12px;padding:8px 10px">📏 حساس مسافة</button>
           <button class="kit-btn" id="mod-shake" style="font-size:12px;padding:8px 10px">🫨 اهتزاز</button>
           <button class="kit-btn" id="mod-flame" style="font-size:12px;padding:8px 10px">🔥 لهب</button>
@@ -4407,6 +4422,20 @@ const MODULE_DEFS={
         tip:'زر كبير أحمر — عند الضغط يرسل إنذاراً فورياً'},
   phone:{label:'الهاتف الذكي (التطبيق)', pins:[], color:0x143c44,
         tip:'يعرض إنذار DANGER عبر البلوتوث'},
+  vsrc:{label:'منبع جهد متغيّر', pins:['V+','V-'], srcPin:true, color:0x37474f, tip:'مصدر جهد مخبري 0-24V — عدّل الجهد بمقبض البطاقة'},
+  isrc:{label:'منبع تيار ثابت', pins:['I+','I-'], isrc:true, color:0x1e5f8a, tip:'يضخّ تياراً ثابتاً مهما كان الحمل — منبع نورتون'},
+  pot:{label:'مقاومة متغيرة 10kΩ', pins:['A','W','B'], color:0x1565c0, tip:'المنزلق W يقسم المقاومة بين A وB'},
+  ldr:{label:'مقاومة ضوئية LDR', pins:['A','B'], dynR:true, color:0x8d6e63, tip:'مقاومتها تقل مع الضوء — جرّب منزلق الإضاءة'},
+  therm:{label:'مقاومة حرارية NTC 10k', pins:['A','B'], dynR:true, color:0x455a64, tip:'مقاومتها تقل مع الحرارة — غيّر درجة الحرارة'},
+  ir:{label:'حساس عقبة IR FC-51', pins:['VCC','GND','OUT'], out:'OUT', color:0x0d47a1, tip:'يكشف العوائق القريبة بالأشعة تحت الحمراء — دون 30 سم'},
+  pir:{label:'حساس حركة PIR SR501', pins:['VCC','GND','OUT'], out:'OUT', color:0x2e7d32, tip:'يكشف حركة الجسم الحار — مرّ يدك أمامه'},
+  mpu:{label:'جيروسكوب+تسارع MPU-6050', pins:['VCC','GND','SCL','SDA','INT'], color:0x6a1b9a, tip:'يقيس الميلان والدوران — حرّك المنزلقين وراقب INT'},
+  opamp:{label:'مكبر عمليات LM358', pins:['VCC','GND','INP','INN','OUT'], opamp:true, color:0x00695c, tip:'مقارن/مكبر: OUT يعتمد على فرق INP وINN'},
+  buzzer:{label:'جرس كهربائي Buzzer', pins:['PLUS','GND'], buzzerPin:'PLUS', color:0x4e342e, tip:'يصدر نغمة حقيقية عندما يُغذّى — صوّت جهازك'},
+  rgb:{label:'ليد RGB', pins:['R','G','B','GND'], color:0x37474f, tip:'اخلط الألوان بتغذية R وG وB'},
+  npn:{label:'ترانزستور NPN 2N2222', pins:['B','C','E'], npn:true, color:0x263238, tip:'تيار قاعدي صغير يفتح مسار C-E'},
+  tmp36:{label:'حساس حرارة TMP36', pins:['VCC','OUT','GND'], out:'OUT', color:0xd84315, tip:'10mV لكل درجة مئوية — غيّر الحرارة وراقب'},
+  sevenseg:{label:'شاشة 7 مقاطع', pins:['A','B','C','D','GND'], sevenseg:true, color:0xb71c1c, tip:'تعرض رقماً 0-9-حسب nibble على A-D'},
   driver:{label:'لوحة قيادة المحرك NPN', pins:['VCC','GND','IN','M+'], motorDrive:true, color:0x2e6b4f,
         tip:'ترانزستور 2N2222 + دايود حماية — IN يتحكم بالمحرك'},
 };
@@ -8056,6 +8085,25 @@ function openCurriculum(){
   home();
 }
 
+/* ===== صوت الجرس (WebAudio) ===== */
+let _buzzOsc=null;
+function buzzAudio(m, on){
+  if(on && !_buzzOsc){
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      _buzzOsc={ctx:new AC()};
+      const o=_buzzOsc.ctx.createOscillator(), g=_buzzOsc.ctx.createGain();
+      o.type='square'; o.frequency.value=1000;
+      g.gain.value=0.04;
+      o.connect(g); g.connect(_buzzOsc.ctx.destination);
+      o.start(); _buzzOsc.o=o;
+    }catch(e){ _buzzOsc=null; }
+  } else if(!on && _buzzOsc){
+    try{ _buzzOsc.o.stop(); }catch(e){}
+    _buzzOsc=null;
+  }
+}
+
 /* ===== التراجع عن الخطوة السابقة (Undo) ===== */
 const undoStack=[];
 let undoLock=false;
@@ -9268,8 +9316,1649 @@ function buildPro2_reed() {
   return group;
 }
 
+/* ===== عناصر السرب v5: منابع/حساسات/مكبرات (gemini-3.8) ===== */
+function buildPro2_vsrc() {
+  var group = new THREE.Group();
+  var caseGeo = new THREE.BoxGeometry(2.2, 1.0, 1.5);
+  var caseMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.5, metalness: 0.8 });
+  var caseMesh = new THREE.Mesh(caseGeo, caseMat);
+  caseMesh.position.y = 0.5;
+  caseMesh.castShadow = true;
+  caseMesh.receiveShadow = true;
+  group.add(caseMesh);
+
+  var bezelGeo = new THREE.BoxGeometry(2.1, 0.9, 0.04);
+  var bezelMat = new THREE.MeshStandardMaterial({ color: 0x181a1d, roughness: 0.7, metalness: 0.3 });
+  var bezelMesh = new THREE.Mesh(bezelGeo, bezelMat);
+  bezelMesh.position.set(0, 0.5, 0.75 + 0.02);
+  group.add(bezelMesh);
+
+  var cv = makeCanvas(512, 256);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1e2124';
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.strokeStyle = '#3a3f47';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(6, 6, 500, 244);
+  ctx.fillStyle = '#cfd3d8';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('DC VOLTAGE SOURCE', 256, 38);
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(32, 60, 200, 90);
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(32, 60, 200, 90);
+  ctx.fillStyle = '#ff1a1a';
+  ctx.font = 'bold 54px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('12.0V', 220, 126);
+  ctx.fillStyle = '#330505';
+  ctx.font = 'bold 54px monospace';
+  ctx.fillText('88.8V', 220, 126);
+  ctx.fillStyle = '#ff1a1a';
+  ctx.fillText('12.0V', 220, 126);
+  ctx.fillStyle = '#8a939e';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('VOLTAGE', 310, 80);
+  ctx.fillText('FINE', 420, 80);
+  ctx.fillStyle = '#4ade80';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('PWR', 40, 215);
+  ctx.fillStyle = '#aaa';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('V -', 200, 220);
+  ctx.fillText('V +', 320, 220);
+
+  var panelTex = new THREE.CanvasTexture(cv);
+  var panelMat = new THREE.MeshBasicMaterial({ map: panelTex });
+  var panelMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.82), panelMat);
+  panelMesh.position.set(0, 0.5, 0.75 + 0.045);
+  group.add(panelMesh);
+
+  var ledMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.9, roughness: 0.2 });
+  var ledMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.04, 16), ledMat);
+  ledMesh.rotation.x = Math.PI / 2;
+  ledMesh.position.set(-0.7, 0.25, 0.75 + 0.05);
+  group.add(ledMesh);
+
+  function createKnob(colorHex, r, h) {
+    var kg = new THREE.Group();
+    var b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 24), new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3, metalness: 0.2 }));
+    b.rotation.x = Math.PI / 2;
+    b.castShadow = true;
+    kg.add(b);
+    var ind = new THREE.Mesh(new THREE.BoxGeometry(r * 0.2, h * 1.05, r * 0.9), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 }));
+    ind.position.set(0, r * 0.45, 0);
+    kg.add(ind);
+    return kg;
+  }
+  var k1 = createKnob(0xd32f2f, 0.12, 0.12);
+  k1.position.set(0.24, 0.55, 0.75 + 0.06);
+  group.add(k1);
+  var k2 = createKnob(0x111111, 0.09, 0.10);
+  k2.position.set(0.68, 0.55, 0.75 + 0.05);
+  group.add(k2);
+
+  function createSocket(colorHex) {
+    var sg = new THREE.Group();
+    var ring = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 18), new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.castShadow = true;
+    sg.add(ring);
+    var tor = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 12, 20), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 }));
+    tor.position.z = 0.02;
+    sg.add(tor);
+    var hole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 16), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+    hole.rotation.x = Math.PI / 2;
+    hole.position.z = 0.01;
+    sg.add(hole);
+    return sg;
+  }
+  var sockNeg = createSocket(0x111111);
+  sockNeg.position.set(-0.22, 0.25, 0.75 + 0.03);
+  group.add(sockNeg);
+  var sockPos = createSocket(0xd32f2f);
+  sockPos.position.set(0.26, 0.25, 0.75 + 0.03);
+  group.add(sockPos);
+
+  group.userData = {
+    pins: {
+      'V-': new THREE.Vector3(-0.22, 0.25, 0.75),
+      'V+': new THREE.Vector3(0.26, 0.25, 0.75)
+    }
+  };
+  return group;
+}
+
+function buildPro2_isrc() {
+  var group = new THREE.Group();
+  var caseGeo = new THREE.BoxGeometry(2.2, 1.0, 1.5);
+  var caseMat = new THREE.MeshStandardMaterial({ color: 0x202428, roughness: 0.5, metalness: 0.8 });
+  var caseMesh = new THREE.Mesh(caseGeo, caseMat);
+  caseMesh.position.y = 0.5;
+  caseMesh.castShadow = true;
+  caseMesh.receiveShadow = true;
+  group.add(caseMesh);
+
+  var bezel = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.9, 0.04), new THREE.MeshStandardMaterial({ color: 0x161a20, roughness: 0.7, metalness: 0.3 }));
+  bezel.position.set(0, 0.5, 0.75 + 0.02);
+  group.add(bezel);
+
+  var cv = makeCanvas(512, 256);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1a222d';
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.strokeStyle = '#0284c7';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(6, 6, 500, 244);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('CONSTANT CURRENT SOURCE', 256, 38);
+  ctx.fillStyle = '#05070a';
+  ctx.fillRect(32, 60, 200, 90);
+  ctx.strokeStyle = '#0369a1';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(32, 60, 200, 90);
+  ctx.fillStyle = '#082f49';
+  ctx.font = 'bold 54px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('8.88A', 220, 126);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText('0.50A', 220, 126);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('CURRENT ADJ', 360, 75);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('CC MODE', 40, 215);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('I -', 200, 220);
+  ctx.fillText('I +', 320, 220);
+
+  var panelTex = new THREE.CanvasTexture(cv);
+  var panelMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.82), new THREE.MeshBasicMaterial({ map: panelTex }));
+  panelMesh.position.set(0, 0.5, 0.75 + 0.045);
+  group.add(panelMesh);
+
+  var ledMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.04, 16), new THREE.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0284c7, emissiveIntensity: 0.9, roughness: 0.2 }));
+  ledMesh.rotation.x = Math.PI / 2;
+  ledMesh.position.set(-0.7, 0.25, 0.75 + 0.05);
+  group.add(ledMesh);
+
+  var dialGroup = new THREE.Group();
+  var dialBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.12, 32), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.4 }));
+  dialBase.rotation.x = Math.PI / 2;
+  dialBase.castShadow = true;
+  dialGroup.add(dialBase);
+  var dialRing = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.02, 12, 32), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 }));
+  dialRing.position.z = 0.06;
+  dialGroup.add(dialRing);
+  var notch = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.15, 0.04), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 }));
+  notch.position.set(0, 0.07, 0.06);
+  dialGroup.add(notch);
+  dialGroup.position.set(0.42, 0.52, 0.75 + 0.06);
+  group.add(dialGroup);
+
+  function createSocket(colorHex) {
+    var sg = new THREE.Group();
+    var ring = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 18), new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.castShadow = true;
+    sg.add(ring);
+    var tor = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.015, 12, 20), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 }));
+    tor.position.z = 0.02;
+    sg.add(tor);
+    var hole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 16), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+    hole.rotation.x = Math.PI / 2;
+    hole.position.z = 0.01;
+    sg.add(hole);
+    return sg;
+  }
+  var sockNeg = createSocket(0x111111);
+  sockNeg.position.set(-0.22, 0.25, 0.75 + 0.03);
+  group.add(sockNeg);
+  var sockPos = createSocket(0x0284c7);
+  sockPos.position.set(0.26, 0.25, 0.75 + 0.03);
+  group.add(sockPos);
+
+  group.userData = {
+    pins: {
+      'I-': new THREE.Vector3(-0.22, 0.25, 0.75),
+      'I+': new THREE.Vector3(0.26, 0.25, 0.75)
+    }
+  };
+  return group;
+}
+
+function buildPro2_pot() {
+  var group = new THREE.Group();
+  var bodyMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35, metalness: 0.1 });
+  var body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 0.9), bodyMat);
+  body.position.set(0, 0.4 + 0.2, 0);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+
+  var trackMat = new THREE.MeshStandardMaterial({ color: 0x171717, roughness: 0.9 });
+  var track = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.34, 32, 1, Math.PI * 0.2, Math.PI * 1.6), trackMat);
+  track.rotation.x = -Math.PI / 2;
+  track.position.set(0, 0.8 + 0.201, 0);
+  group.add(track);
+
+  var bushingMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.25 });
+  var bushing = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.15, 24), bushingMat);
+  bushing.position.set(0, 0.8 + 0.2 + 0.075, 0);
+  bushing.castShadow = true;
+  group.add(bushing);
+
+  var potArm = new THREE.Group();
+  potArm.name = 'potArm';
+  potArm.userData = { animTag: 'potArm' };
+
+  var shaftMat = new THREE.MeshStandardMaterial({ color: 0xe5e7eb, metalness: 0.85, roughness: 0.2 });
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.45, 24), shaftMat);
+  shaft.position.y = 0.225;
+  shaft.castShadow = true;
+  potArm.add(shaft);
+
+  for (var i = 0; i < 12; i++) {
+    var knurl = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.35, 0.015), shaftMat);
+    var ang = (i / 12) * Math.PI * 2;
+    knurl.position.set(Math.cos(ang) * 0.1, 0.2, Math.sin(ang) * 0.1);
+    potArm.add(knurl);
+  }
+
+  var slotMat = new THREE.MeshBasicMaterial({ color: 0x374151 });
+  var slot = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.20), slotMat);
+  slot.position.set(0, 0.45, 0);
+  potArm.add(slot);
+
+  var wiperMat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, metalness: 0.95, roughness: 0.2 });
+  var wiper = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.26), wiperMat);
+  wiper.position.set(0, -0.06, 0.15);
+  potArm.add(wiper);
+
+  var contact = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 12), wiperMat);
+  contact.position.set(0, -0.075, 0.26);
+  potArm.add(contact);
+
+  potArm.position.set(0, 0.8 + 0.2 + 0.15, 0);
+  group.add(potArm);
+
+  var cv = makeCanvas(256, 128);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1d4ed8';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('B10K', 128, 55);
+  ctx.font = '22px sans-serif';
+  ctx.fillText('1 2 3', 128, 100);
+  var labelTex = new THREE.CanvasTexture(cv);
+  var label = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.5), new THREE.MeshBasicMaterial({ map: labelTex }));
+  label.position.set(0, 0.6, 0.451);
+  group.add(label);
+
+  var pinMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.3 });
+  var pinGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.25, 12);
+  var pA = new THREE.Mesh(pinGeo, pinMat);
+  pA.position.set(-0.4, 0.1, 0.4);
+  pA.castShadow = true;
+  group.add(pA);
+  var pW = new THREE.Mesh(pinGeo, pinMat);
+  pW.position.set(0.0, 0.1, 0.4);
+  pW.castShadow = true;
+  group.add(pW);
+  var pB = new THREE.Mesh(pinGeo, pinMat);
+  pB.position.set(0.4, 0.1, 0.4);
+  pB.castShadow = true;
+  group.add(pB);
+
+  group.userData = {
+    pins: {
+      A: new THREE.Vector3(-0.4, 0, 0.4),
+      W: new THREE.Vector3(0.0, 0, 0.4),
+      B: new THREE.Vector3(0.4, 0, 0.4)
+    }
+  };
+  return group;
+}
+
+function buildPro2_ldr() {
+  var group = new THREE.Group();
+  var leadMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.85, roughness: 0.3 });
+  var leadGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.5, 12);
+  var lead1 = new THREE.Mesh(leadGeo, leadMat);
+  lead1.position.set(-0.12, 0.25, 0);
+  lead1.castShadow = true;
+  group.add(lead1);
+  var lead2 = new THREE.Mesh(leadGeo, leadMat);
+  lead2.position.set(0.12, 0.25, 0);
+  lead2.castShadow = true;
+  group.add(lead2);
+
+  var head = new THREE.Group();
+  head.position.set(0, 0.52, 0);
+  head.rotation.x = -20 * (Math.PI / 180);
+
+  var baseMat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.8 });
+  var baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.275, 0.275, 0.08, 32), baseMat);
+  baseMesh.rotation.x = Math.PI / 2;
+  baseMesh.castShadow = true;
+  head.add(baseMesh);
+
+  var rimMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.7 });
+  var rimMesh = new THREE.Mesh(new THREE.TorusGeometry(0.275, 0.02, 12, 32), rimMat);
+  rimMesh.position.z = 0.04;
+  head.add(rimMesh);
+
+  var cv = makeCanvas(256, 256);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fbeee0';
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.strokeStyle = '#c2410c';
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  var ys = [45, 80, 115, 150, 185, 220];
+  var xLeft = 45, xRight = 211;
+  ctx.moveTo(xLeft, ys[0]);
+  for (var i = 0; i < ys.length; i++) {
+    var curX = (i % 2 === 0) ? xRight : xLeft;
+    ctx.lineTo(curX, ys[i]);
+    if (i < ys.length - 1) {
+      ctx.lineTo(curX, ys[i + 1]);
+    }
+  }
+  ctx.stroke();
+
+  var sensorTex = new THREE.CanvasTexture(cv);
+  var sensorMesh = new THREE.Mesh(new THREE.CircleGeometry(0.265, 32), new THREE.MeshBasicMaterial({ map: sensorTex }));
+  sensorMesh.position.z = 0.041;
+  head.add(sensorMesh);
+
+  var epoxyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.1 });
+  var epoxyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.265, 0.265, 0.02, 32), epoxyMat);
+  epoxyMesh.rotation.x = Math.PI / 2;
+  epoxyMesh.position.z = 0.05;
+  head.add(epoxyMesh);
+
+  group.add(head);
+
+  group.userData = {
+    pins: {
+      A: new THREE.Vector3(-0.12, 0, 0),
+      B: new THREE.Vector3(0.12, 0, 0)
+    }
+  };
+  return group;
+}
+
+function buildPro2_therm() {
+  var group = new THREE.Group();
+  var leadMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.25 });
+  var leadGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.55, 12);
+  var l1 = new THREE.Mesh(leadGeo, leadMat);
+  l1.position.set(-0.06, 0.275, 0);
+  l1.castShadow = true;
+  group.add(l1);
+  var l2 = new THREE.Mesh(leadGeo, leadMat);
+  l2.position.set(0.06, 0.275, 0);
+  l2.castShadow = true;
+  group.add(l2);
+
+  var beadMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3, metalness: 0.1 });
+  var bead = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 24), beadMat);
+  bead.scale.set(1.0, 1.25, 0.85);
+  bead.position.set(0, 0.55, 0);
+  bead.castShadow = true;
+  group.add(bead);
+
+  var cv = makeCanvas(256, 128);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.strokeStyle = '#9ca3af';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(4, 4, 248, 120);
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.arc(36, 90, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(32, 30, 8, 60);
+  ctx.strokeStyle = '#4b5563';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(30, 26, 12, 70);
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 30px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('NTC 10K', 65, 55);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillStyle = '#ef4444';
+  ctx.fillText('THERMISTOR', 65, 95);
+
+  var tagTex = new THREE.CanvasTexture(cv);
+  var tagMat = new THREE.MeshBasicMaterial({ map: tagTex, side: THREE.DoubleSide });
+  var tag = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.21), tagMat);
+  tag.position.set(0.22, 0.35, 0.01);
+  group.add(tag);
+
+  group.userData = {
+    pins: {
+      A: new THREE.Vector3(-0.06, 0, 0),
+      B: new THREE.Vector3(0.06, 0, 0)
+    }
+  };
+  return group;
+}
+
+function buildPro2_ir() {
+  var group = new THREE.Group();
+  var pcbGeo = new THREE.BoxGeometry(2.0, 0.06, 1.4);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.4, metalness: 0.2 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.position.y = 0.03 + 0.15;
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  group.add(pcb);
+
+  function createLedDome(colorHex, opac) {
+    var dg = new THREE.Group();
+    var mat = new THREE.MeshStandardMaterial({ color: colorHex, transparent: opac < 1.0, opacity: opac, roughness: 0.1, metalness: 0.2 });
+    var sph = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+    sph.position.y = 0.14;
+    dg.add(sph);
+    var cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.14, 20), mat);
+    cyl.position.y = 0.07;
+    dg.add(cyl);
+    var baseRim = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.04, 20), mat);
+    baseRim.position.y = 0.02;
+    dg.add(baseRim);
+    return dg;
+  }
+
+  var emitter = createLedDome(0xe0f2fe, 0.65);
+  emitter.rotation.x = Math.PI / 2 - 0.12;
+  emitter.position.set(-0.35, 0.22, 0.65);
+  emitter.castShadow = true;
+  group.add(emitter);
+
+  var receiver = createLedDome(0x0a0a0a, 0.98);
+  receiver.rotation.x = Math.PI / 2 - 0.12;
+  receiver.position.set(0.35, 0.22, 0.65);
+  receiver.castShadow = true;
+  group.add(receiver);
+
+  var chipMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.6 });
+  var chip = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.08, 0.35), chipMat);
+  chip.position.set(0, 0.22, 0.1);
+  chip.castShadow = true;
+  group.add(chip);
+
+  var trimBody = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.25, 0.36), new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 }));
+  trimBody.position.set(0, 0.30, -0.32);
+  trimBody.castShadow = true;
+  group.add(trimBody);
+
+  var trimScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.02, 16), new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.8, roughness: 0.3 }));
+  trimScrew.position.set(0, 0.43, -0.32);
+  group.add(trimScrew);
+
+  var pwrLed = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.06), new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.8, roughness: 0.2 }));
+  pwrLed.position.set(-0.6, 0.20, -0.15);
+  group.add(pwrLed);
+
+  var detLed = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.06), new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.9, roughness: 0.2 }));
+  detLed.name = 'ledDetect';
+  detLed.userData = { animTag: 'ledDetect' };
+  detLed.position.set(-0.6, 0.20, 0.15);
+  group.add(detLed);
+
+  var cv = makeCanvas(256, 128);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#1d4ed8';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('FC-51 IR OBSTACLE', 128, 40);
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('VCC  GND  OUT', 128, 90);
+  var silkscreen = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }));
+  silkscreen.rotation.x = -Math.PI / 2;
+  silkscreen.position.set(0, 0.211, -0.05);
+  group.add(silkscreen);
+
+  var plasticBlock = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.15, 0.12), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 }));
+  plasticBlock.position.set(0, 0.25, -0.62);
+  group.add(plasticBlock);
+
+  var pinMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+  var pinGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.26, 12);
+  var pinVcc = new THREE.Mesh(pinGeo, pinMat);
+  pinVcc.position.set(-0.15, 0.13, -0.62);
+  pinVcc.castShadow = true;
+  group.add(pinVcc);
+  var pinGnd = new THREE.Mesh(pinGeo, pinMat);
+  pinGnd.position.set(0, 0.13, -0.62);
+  pinGnd.castShadow = true;
+  group.add(pinGnd);
+  var pinOut = new THREE.Mesh(pinGeo, pinMat);
+  pinOut.position.set(0.15, 0.13, -0.62);
+  pinOut.castShadow = true;
+  group.add(pinOut);
+
+  group.userData = {
+    out: 'OUT',
+    pins: {
+      VCC: new THREE.Vector3(-0.15, 0, -0.62),
+      GND: new THREE.Vector3(0, 0, -0.62),
+      OUT: new THREE.Vector3(0.15, 0, -0.62)
+    }
+  };
+  return group;
+}
+
+function buildPro2_pir() {
+  var group = new THREE.Group();
+  var pcbGeo = new THREE.BoxGeometry(2.4, 0.06, 2.0);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.45, metalness: 0.2 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.position.y = 0.03 + 0.15;
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  group.add(pcb);
+
+  var domeGroup = new THREE.Group();
+  domeGroup.position.set(0, 0.21, 0.15);
+
+  var domeMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5, metalness: 0.05 });
+  var dome = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+  dome.castShadow = true;
+  domeGroup.add(dome);
+
+  var grooveMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 });
+  var r1 = 0.55 * Math.sin(0.4);
+  var y1 = 0.55 * Math.cos(0.4);
+  var ring1 = new THREE.Mesh(new THREE.TorusGeometry(r1, 0.015, 8, 36), grooveMat);
+  ring1.rotation.x = Math.PI / 2;
+  ring1.position.y = y1;
+  domeGroup.add(ring1);
+
+  var r2 = 0.55 * Math.sin(0.8);
+  var y2 = 0.55 * Math.cos(0.8);
+  var ring2 = new THREE.Mesh(new THREE.TorusGeometry(r2, 0.015, 8, 36), grooveMat);
+  ring2.rotation.x = Math.PI / 2;
+  ring2.position.y = y2;
+  domeGroup.add(ring2);
+
+  var r3 = 0.55 * Math.sin(1.2);
+  var y3 = 0.55 * Math.cos(1.2);
+  var ring3 = new THREE.Mesh(new THREE.TorusGeometry(r3, 0.015, 8, 36), grooveMat);
+  ring3.rotation.x = Math.PI / 2;
+  ring3.position.y = y3;
+  domeGroup.add(ring3);
+
+  group.add(domeGroup);
+
+  var chipMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.6 });
+  var ic = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.25), chipMat);
+  ic.position.set(-0.75, 0.22, -0.4);
+  ic.castShadow = true;
+  group.add(ic);
+
+  function createTrimpot() {
+    var tg = new THREE.Group();
+    var b = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.20, 0.24), new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.4 }));
+    b.castShadow = true;
+    tg.add(b);
+    var dial = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.04, 16), new THREE.MeshStandardMaterial({ color: 0xffedd5, roughness: 0.3 }));
+    dial.position.y = 0.11;
+    tg.add(dial);
+    var slot = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.12), new THREE.MeshBasicMaterial({ color: 0x7c2d12 }));
+    slot.position.y = 0.13;
+    tg.add(slot);
+    return tg;
+  }
+  var trimDelay = createTrimpot();
+  trimDelay.position.set(0.75, 0.27, -0.45);
+  group.add(trimDelay);
+
+  var trimSens = createTrimpot();
+  trimSens.position.set(0.75, 0.27, -0.1);
+  group.add(trimSens);
+
+  var pirLed = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 16), new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0xdc2626, emissiveIntensity: 0.9, roughness: 0.2 }));
+  pirLed.name = 'ledDetect';
+  pirLed.userData = { animTag: 'ledDetect' };
+  pirLed.position.set(-0.75, 0.23, 0.4);
+  group.add(pirLed);
+
+  var cv = makeCanvas(256, 128);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#15803d';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('HC-SR501 PIR', 128, 40);
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('VCC  OUT  GND', 128, 90);
+  var silkscreen = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.45), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }));
+  silkscreen.rotation.x = -Math.PI / 2;
+  silkscreen.position.set(0, 0.211, -0.48);
+  group.add(silkscreen);
+
+  var plasticBlock = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.15, 0.12), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 }));
+  plasticBlock.position.set(0, 0.25, -0.9);
+  group.add(plasticBlock);
+
+  var pinMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+  var pinGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.26, 12);
+  var pinVcc = new THREE.Mesh(pinGeo, pinMat);
+  pinVcc.position.set(-0.14, 0.13, -0.9);
+  pinVcc.castShadow = true;
+  group.add(pinVcc);
+  var pinOut = new THREE.Mesh(pinGeo, pinMat);
+  pinOut.position.set(0, 0.13, -0.9);
+  pinOut.castShadow = true;
+  group.add(pinOut);
+  var pinGnd = new THREE.Mesh(pinGeo, pinMat);
+  pinGnd.position.set(0.14, 0.13, -0.9);
+  pinGnd.castShadow = true;
+  group.add(pinGnd);
+
+  group.userData = {
+    out: 'OUT',
+    pins: {
+      VCC: new THREE.Vector3(-0.14, 0, -0.9),
+      OUT: new THREE.Vector3(0, 0, -0.9),
+      GND: new THREE.Vector3(0.14, 0, -0.9)
+    }
+  };
+  return group;
+}
+
+function makeCanvas(w, h) {
+  var c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
+function buildPro2_mpu() {
+  var root = new THREE.Group();
+  root.name = 'MPU-6050';
+
+  var pcbGeo = new THREE.BoxGeometry(2.0, 0.08, 1.4);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x5a189a, roughness: 0.35, metalness: 0.1 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var holeGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.085, 16);
+  var goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.85, roughness: 0.25 });
+  var holeOffsets = [
+    [-0.85, 0.55],
+    [0.85, 0.55],
+    [-0.85, -0.55],
+    [0.85, -0.55]
+  ];
+  holeOffsets.forEach(function(pos) {
+    var hole = new THREE.Mesh(holeGeo, goldMat);
+    hole.position.set(pos[0], 0.04, pos[1]);
+    root.add(hole);
+  });
+
+  var chipGeo = new THREE.BoxGeometry(0.5, 0.06, 0.5);
+  var chipCanvas = makeCanvas(256, 256);
+  var ctx = chipCanvas.getContext('2d');
+  ctx.fillStyle = '#b0b0b0';
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = '#222222';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MPU-6050', 128, 128);
+  ctx.beginPath();
+  ctx.arc(32, 32, 8, 0, Math.PI * 2);
+  ctx.fill();
+  var chipTex = new THREE.CanvasTexture(chipCanvas);
+
+  var chipMats = [
+    new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.3 }),
+    new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.3 }),
+    new THREE.MeshStandardMaterial({ map: chipTex, metalness: 0.7, roughness: 0.3 }),
+    new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.3 }),
+    new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.3 }),
+    new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.3 })
+  ];
+  var chip = new THREE.Mesh(chipGeo, chipMats);
+  chip.castShadow = true;
+  chip.position.set(-0.15, 0.08 + 0.03, 0);
+  root.add(chip);
+
+  var arrowsCanvas = makeCanvas(256, 256);
+  var actx = arrowsCanvas.getContext('2d');
+  actx.clearRect(0, 0, 256, 256);
+  actx.lineWidth = 14;
+  actx.lineCap = 'round';
+  actx.strokeStyle = '#ff3333';
+  actx.beginPath();
+  actx.moveTo(60, 196);
+  actx.lineTo(190, 196);
+  actx.stroke();
+  actx.fillStyle = '#ff3333';
+  actx.beginPath();
+  actx.moveTo(210, 196);
+  actx.lineTo(180, 180);
+  actx.lineTo(180, 212);
+  actx.fill();
+  actx.strokeStyle = '#33cc33';
+  actx.beginPath();
+  actx.moveTo(60, 196);
+  actx.lineTo(60, 66);
+  actx.stroke();
+  actx.fillStyle = '#33cc33';
+  actx.beginPath();
+  actx.moveTo(60, 46);
+  actx.lineTo(44, 76);
+  actx.lineTo(76, 76);
+  actx.fill();
+  actx.strokeStyle = '#3388ff';
+  actx.beginPath();
+  actx.moveTo(60, 196);
+  actx.lineTo(150, 106);
+  actx.stroke();
+  actx.fillStyle = '#3388ff';
+  actx.beginPath();
+  actx.moveTo(164, 92);
+  actx.lineTo(135, 105);
+  actx.lineTo(150, 120);
+  actx.fill();
+  var arrowsTex = new THREE.CanvasTexture(arrowsCanvas);
+  var silkscreenGeo = new THREE.PlaneGeometry(0.4, 0.4);
+  var silkscreenMat = new THREE.MeshBasicMaterial({ map: arrowsTex, transparent: true });
+  var silkscreen = new THREE.Mesh(silkscreenGeo, silkscreenMat);
+  silkscreen.rotation.x = -Math.PI / 2;
+  silkscreen.position.set(0.45, 0.082, -0.25);
+  root.add(silkscreen);
+
+  var regGeo = new THREE.BoxGeometry(0.2, 0.05, 0.12);
+  var regMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
+  var reg = new THREE.Mesh(regGeo, regMat);
+  reg.castShadow = true;
+  reg.position.set(0.45, 0.08 + 0.025, 0.25);
+  root.add(reg);
+
+  var hdrPlasticGeo = new THREE.BoxGeometry(1.6, 0.15, 0.12);
+  var hdrPlasticMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
+  var hdrPlastic = new THREE.Mesh(hdrPlasticGeo, hdrPlasticMat);
+  hdrPlastic.castShadow = true;
+  hdrPlastic.position.set(0, 0.08 + 0.075, 0.55);
+  root.add(hdrPlastic);
+
+  var pinGeo = new THREE.BoxGeometry(0.04, 0.45, 0.04);
+  for (var i = 0; i < 8; i++) {
+    var pX = -0.7 + i * 0.2;
+    var pin = new THREE.Mesh(pinGeo, goldMat);
+    pin.castShadow = true;
+    pin.position.set(pX, 0.08 + 0.15, 0.55);
+    root.add(pin);
+  }
+
+  var pinDefs = [
+    { name: 'VCC', x: -0.7 },
+    { name: 'GND', x: -0.5 },
+    { name: 'SCL', x: -0.3 },
+    { name: 'SDA', x: -0.1 },
+    { name: 'INT', x: 0.7 }
+  ];
+  pinDefs.forEach(function(pd) {
+    var pObj = new THREE.Object3D();
+    pObj.name = 'pin_' + pd.name;
+    pObj.position.set(pd.x, 0.08, 0.65);
+    root.add(pObj);
+  });
+
+  return root;
+}
+
+function buildPro2_opamp() {
+  var root = new THREE.Group();
+  root.name = 'LM358_Module';
+
+  var pcbGeo = new THREE.BoxGeometry(1.8, 0.08, 1.2);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x0f5132, roughness: 0.4 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var sLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 1.1), new THREE.MeshStandardMaterial({ color: 0x1f1f1f }));
+  sLeft.position.set(-0.35, 0.08 + 0.05, 0);
+  sLeft.castShadow = true;
+  root.add(sLeft);
+
+  var sRight = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 1.1), new THREE.MeshStandardMaterial({ color: 0x1f1f1f }));
+  sRight.position.set(0.35, 0.08 + 0.05, 0);
+  sRight.castShadow = true;
+  root.add(sRight);
+
+  var chipCanv = makeCanvas(256, 128);
+  var cctx = chipCanv.getContext('2d');
+  cctx.fillStyle = '#1c1c1c';
+  cctx.fillRect(0, 0, 256, 128);
+  cctx.fillStyle = '#ffffff';
+  cctx.font = 'bold 36px monospace';
+  cctx.textAlign = 'center';
+  cctx.textBaseline = 'middle';
+  cctx.fillText('LM358N', 140, 64);
+  cctx.fillStyle = '#aaaaaa';
+  cctx.beginPath();
+  cctx.arc(36, 36, 10, 0, Math.PI * 2);
+  cctx.fill();
+  cctx.fillStyle = '#111111';
+  cctx.beginPath();
+  cctx.arc(10, 64, 18, -Math.PI / 2, Math.PI / 2);
+  cctx.fill();
+  var chipTopTex = new THREE.CanvasTexture(chipCanv);
+
+  var dipMats = [
+    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 }),
+    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 }),
+    new THREE.MeshStandardMaterial({ map: chipTopTex, roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.8 }),
+    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 }),
+    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 })
+  ];
+  var bodyGeo = new THREE.BoxGeometry(0.5, 0.35, 1.4);
+  var body = new THREE.Mesh(bodyGeo, dipMats);
+  body.castShadow = true;
+  body.position.set(0, 0.08 + 0.1 + 0.175, 0);
+  root.add(body);
+
+  var legMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.85, roughness: 0.25 });
+  var zLegs = [-0.45, -0.15, 0.15, 0.45];
+  zLegs.forEach(function(z) {
+    var lHoriz = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.05), legMat);
+    lHoriz.position.set(-0.31, 0.26, z);
+    lHoriz.castShadow = true;
+    root.add(lHoriz);
+    var lVert = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.18, 0.05), legMat);
+    lVert.position.set(-0.38, 0.17, z);
+    lVert.castShadow = true;
+    root.add(lVert);
+
+    var rHoriz = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.05), legMat);
+    rHoriz.position.set(0.31, 0.26, z);
+    rHoriz.castShadow = true;
+    root.add(rHoriz);
+    var rVert = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.18, 0.05), legMat);
+    rVert.position.set(0.38, 0.17, z);
+    rVert.castShadow = true;
+    root.add(rVert);
+  });
+
+  var pinDefs = [
+    { name: 'VCC', x: -0.6 },
+    { name: 'GND', x: -0.3 },
+    { name: 'INP', x: 0.0 },
+    { name: 'INN', x: 0.3 },
+    { name: 'OUT', x: 0.6 }
+  ];
+  pinDefs.forEach(function(p) {
+    var pinObj = new THREE.Object3D();
+    pinObj.name = 'pin_' + p.name;
+    pinObj.position.set(p.x, 0.08, 0.55);
+    root.add(pinObj);
+  });
+
+  return root;
+}
+
+function buildPro2_buzzer() {
+  var root = new THREE.Group();
+  root.name = 'Buzzer_Module';
+  root.userData.buzzerPin = 'PLUS';
+
+  var goldRingGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.04, 32);
+  var goldMat = new THREE.MeshStandardMaterial({ color: 0xcca010, metalness: 0.85, roughness: 0.25 });
+  var ring = new THREE.Mesh(goldRingGeo, goldMat);
+  ring.castShadow = true;
+  ring.position.y = 0.02;
+  root.add(ring);
+
+  var bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.58, 32);
+  var bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.1 });
+  var body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  body.position.y = 0.04 + 0.29;
+  root.add(body);
+
+  var holeGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.01, 24);
+  var holeMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+  var hole = new THREE.Mesh(holeGeo, holeMat);
+  hole.position.y = 0.621;
+  root.add(hole);
+
+  var stickerCanv = makeCanvas(64, 64);
+  var sctx = stickerCanv.getContext('2d');
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0, 0, 64, 64);
+  sctx.fillStyle = '#cc0000';
+  sctx.font = 'bold 48px sans-serif';
+  sctx.textAlign = 'center';
+  sctx.textBaseline = 'middle';
+  sctx.fillText('+', 32, 34);
+  var stickerTex = new THREE.CanvasTexture(stickerCanv);
+  var stickerGeo = new THREE.PlaneGeometry(0.18, 0.18);
+  var stickerMat = new THREE.MeshBasicMaterial({ map: stickerTex });
+  var sticker = new THREE.Mesh(stickerGeo, stickerMat);
+  sticker.position.set(0, 0.35, 0.505);
+  root.add(sticker);
+
+  var waveGroup = new THREE.Group();
+  waveGroup.name = 'waves';
+  waveGroup.userData.animTag = 'waves';
+  waveGroup.visible = false;
+
+  var waveMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.85 });
+  var rList = [0.22, 0.34, 0.46];
+  rList.forEach(function(r) {
+    var arcGeo = new THREE.TorusGeometry(r, 0.015, 8, 24, Math.PI * 0.7);
+    var arc = new THREE.Mesh(arcGeo, waveMat);
+    arc.rotation.x = -Math.PI / 2;
+    arc.rotation.z = Math.PI * 0.65;
+    waveGroup.add(arc);
+  });
+  waveGroup.position.set(0, 0.8, 0);
+  root.add(waveGroup);
+
+  var plusPin = new THREE.Object3D();
+  plusPin.name = 'pin_PLUS';
+  plusPin.position.set(-0.2, 0, 0.52);
+  root.add(plusPin);
+
+  var vccPin = new THREE.Object3D();
+  vccPin.name = 'pin_VCC';
+  vccPin.position.set(-0.2, 0, 0.52);
+  root.add(vccPin);
+
+  var gndPin = new THREE.Object3D();
+  gndPin.name = 'pin_GND';
+  gndPin.position.set(0.2, 0, 0.52);
+  root.add(gndPin);
+
+  return root;
+}
+
+function buildPro2_rgb() {
+  var root = new THREE.Group();
+  root.name = 'RGB_LED_Module';
+
+  var pcbGeo = new THREE.BoxGeometry(1.6, 0.08, 1.0);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.6 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var baseGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.08, 24);
+  var baseMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.2 });
+  var ledBase = new THREE.Mesh(baseGeo, baseMat);
+  ledBase.position.set(0, 0.08 + 0.04, -0.1);
+  ledBase.castShadow = true;
+  root.add(ledBase);
+
+  var domeGeo = new THREE.SphereGeometry(0.28, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+  var domeMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0x000000,
+    roughness: 0.15,
+    metalness: 0.05,
+    transparent: true,
+    opacity: 0.92
+  });
+  var dome = new THREE.Mesh(domeGeo, domeMat);
+  dome.name = 'rgbDome';
+  dome.userData.animTag = 'rgbDome';
+  dome.position.set(0, 0.16, -0.1);
+  dome.castShadow = true;
+  root.add(dome);
+
+  var resCanv = makeCanvas(256, 128);
+  var rctx = resCanv.getContext('2d');
+  rctx.clearRect(0, 0, 256, 128);
+  rctx.strokeStyle = '#ffffff';
+  rctx.lineWidth = 4;
+  rctx.fillStyle = '#ffffff';
+  rctx.font = 'bold 26px sans-serif';
+  rctx.textAlign = 'center';
+  rctx.textBaseline = 'middle';
+  [45, 128, 211].forEach(function(cx) {
+    rctx.strokeRect(cx - 24, 30, 48, 68);
+    rctx.fillText('R', cx, 64);
+  });
+  var resTex = new THREE.CanvasTexture(resCanv);
+  var resPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.7, 0.35),
+    new THREE.MeshBasicMaterial({ map: resTex, transparent: true })
+  );
+  resPlane.rotation.x = -Math.PI / 2;
+  resPlane.position.set(0, 0.082, 0.26);
+  root.add(resPlane);
+
+  var pinDefs = [
+    { name: 'R', x: -0.45 },
+    { name: 'G', x: -0.15 },
+    { name: 'B', x: 0.15 },
+    { name: 'GND', x: 0.45 }
+  ];
+  pinDefs.forEach(function(pd) {
+    var pObj = new THREE.Object3D();
+    pObj.name = 'pin_' + pd.name;
+    pObj.position.set(pd.x, 0.08, 0.46);
+    root.add(pObj);
+  });
+
+  return root;
+}
+
+function buildPro2_npn() {
+  var root = new THREE.Group();
+  root.name = 'NPN_2N2222_Module';
+
+  var pcbGeo = new THREE.BoxGeometry(1.6, 0.08, 1.1);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x1b4332, roughness: 0.5 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var silkCanv = makeCanvas(256, 128);
+  var sctx = silkCanv.getContext('2d');
+  sctx.clearRect(0, 0, 256, 128);
+  sctx.fillStyle = '#ffffff';
+  sctx.font = 'bold 36px monospace';
+  sctx.textAlign = 'center';
+  sctx.textBaseline = 'middle';
+  sctx.fillText('B   E   C', 128, 64);
+  var silkTex = new THREE.CanvasTexture(silkCanv);
+  var silkPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.4),
+    new THREE.MeshBasicMaterial({ map: silkTex, transparent: true })
+  );
+  silkPlane.rotation.x = -Math.PI / 2;
+  silkPlane.position.set(0, 0.082, 0.3);
+  root.add(silkPlane);
+
+  var to92Canv = makeCanvas(128, 256);
+  var tctx = to92Canv.getContext('2d');
+  tctx.fillStyle = '#181818';
+  tctx.fillRect(0, 0, 128, 256);
+  tctx.fillStyle = '#eeeeee';
+  tctx.font = 'bold 20px sans-serif';
+  tctx.textAlign = 'center';
+  tctx.fillText('2N2222', 64, 110);
+  tctx.fillText('NPN', 64, 150);
+  var to92Tex = new THREE.CanvasTexture(to92Canv);
+
+  var bodyMatSide = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.6 });
+  var bodyMatFlat = new THREE.MeshStandardMaterial({ map: to92Tex, roughness: 0.6 });
+  var semiGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.55, 24, 1, false, 0, Math.PI);
+  var curved = new THREE.Mesh(semiGeo, bodyMatSide);
+  curved.rotation.y = Math.PI / 2;
+  curved.position.set(0, 0.08 + 0.35 + 0.275, -0.15);
+  curved.castShadow = true;
+  root.add(curved);
+
+  var flatGeo = new THREE.PlaneGeometry(0.48, 0.55);
+  var flatFace = new THREE.Mesh(flatGeo, bodyMatFlat);
+  flatFace.position.set(0, 0.08 + 0.35 + 0.275, -0.15);
+  flatFace.castShadow = true;
+  root.add(flatFace);
+
+  var legMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.85, roughness: 0.3 });
+  var legX = [-0.18, 0, 0.18];
+  legX.forEach(function(x) {
+    var legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.38, 12);
+    var leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.set(x, 0.08 + 0.19, -0.15);
+    leg.castShadow = true;
+    root.add(leg);
+  });
+
+  var pinDefs = [
+    { name: 'B', x: -0.35 },
+    { name: 'E', x: 0.0 },
+    { name: 'C', x: 0.35 }
+  ];
+  pinDefs.forEach(function(pd) {
+    var pObj = new THREE.Object3D();
+    pObj.name = 'pin_' + pd.name;
+    pObj.position.set(pd.x, 0.08, 0.5);
+    root.add(pObj);
+  });
+
+  return root;
+}
+
+function buildPro2_tmp36() {
+  var root = new THREE.Group();
+  root.name = 'TMP36_Module';
+
+  var pcbGeo = new THREE.BoxGeometry(1.6, 0.08, 1.1);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x004b6e, roughness: 0.45 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var iconCanv = makeCanvas(256, 128);
+  var ictx = iconCanv.getContext('2d');
+  ictx.clearRect(0, 0, 256, 128);
+  ictx.strokeStyle = '#66ccff';
+  ictx.lineWidth = 4;
+  var drawSnow = function(cx, cy, r) {
+    for (var a = 0; a < 3; a++) {
+      var rad = a * Math.PI / 3;
+      ictx.beginPath();
+      ictx.moveTo(cx - Math.cos(rad) * r, cy - Math.sin(rad) * r);
+      ictx.lineTo(cx + Math.cos(rad) * r, cy + Math.sin(rad) * r);
+      ictx.stroke();
+    }
+  };
+  drawSnow(60, 64, 26);
+  ictx.strokeStyle = '#ffaa00';
+  ictx.fillStyle = '#ffaa00';
+  ictx.beginPath();
+  ictx.arc(196, 64, 16, 0, Math.PI * 2);
+  ictx.fill();
+  for (var i = 0; i < 8; i++) {
+    var ang = i * Math.PI / 4;
+    ictx.beginPath();
+    ictx.moveTo(196 + Math.cos(ang) * 20, 64 + Math.sin(ang) * 20);
+    ictx.lineTo(196 + Math.cos(ang) * 28, 64 + Math.sin(ang) * 28);
+    ictx.stroke();
+  }
+  var iconTex = new THREE.CanvasTexture(iconCanv);
+  var iconPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.8, 0.4),
+    new THREE.MeshBasicMaterial({ map: iconTex, transparent: true })
+  );
+  iconPlane.rotation.x = -Math.PI / 2;
+  iconPlane.position.set(0, 0.082, 0.28);
+  root.add(iconPlane);
+
+  var to92Canv = makeCanvas(128, 256);
+  var tctx = to92Canv.getContext('2d');
+  tctx.fillStyle = '#181818';
+  tctx.fillRect(0, 0, 128, 256);
+  tctx.fillStyle = '#eeeeee';
+  tctx.font = 'bold 24px sans-serif';
+  tctx.textAlign = 'center';
+  tctx.fillText('TMP36', 64, 110);
+  tctx.font = '16px sans-serif';
+  tctx.fillText('-40 to 125C', 64, 150);
+  var to92Tex = new THREE.CanvasTexture(to92Canv);
+
+  var bodyMatSide = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.6 });
+  var bodyMatFlat = new THREE.MeshStandardMaterial({ map: to92Tex, roughness: 0.6 });
+  var semiGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.55, 24, 1, false, 0, Math.PI);
+  var curved = new THREE.Mesh(semiGeo, bodyMatSide);
+  curved.rotation.y = Math.PI / 2;
+  curved.position.set(0, 0.08 + 0.35 + 0.275, -0.15);
+  curved.castShadow = true;
+  root.add(curved);
+
+  var flatGeo = new THREE.PlaneGeometry(0.48, 0.55);
+  var flatFace = new THREE.Mesh(flatGeo, bodyMatFlat);
+  flatFace.position.set(0, 0.08 + 0.35 + 0.275, -0.15);
+  flatFace.castShadow = true;
+  root.add(flatFace);
+
+  var legMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.85, roughness: 0.3 });
+  [-0.18, 0, 0.18].forEach(function(x) {
+    var legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.38, 12);
+    var leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.set(x, 0.08 + 0.19, -0.15);
+    leg.castShadow = true;
+    root.add(leg);
+  });
+
+  var pinDefs = [
+    { name: 'VCC', x: -0.35 },
+    { name: 'OUT', x: 0.0 },
+    { name: 'GND', x: 0.35 }
+  ];
+  pinDefs.forEach(function(pd) {
+    var pObj = new THREE.Object3D();
+    pObj.name = 'pin_' + pd.name;
+    pObj.position.set(pd.x, 0.08, 0.5);
+    root.add(pObj);
+  });
+
+  return root;
+}
+
+function buildPro2_sevenseg() {
+  var root = new THREE.Group();
+  root.name = 'SevenSeg_Module';
+
+  var pcbGeo = new THREE.BoxGeometry(2.6, 0.08, 1.8);
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
+  var pcb = new THREE.Mesh(pcbGeo, pcbMat);
+  pcb.castShadow = true;
+  pcb.receiveShadow = true;
+  pcb.position.y = 0.04;
+  root.add(pcb);
+
+  var bezelGeo = new THREE.BoxGeometry(1.2, 0.25, 1.6);
+  var bezelMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.8 });
+  var bezel = new THREE.Mesh(bezelGeo, bezelMat);
+  bezel.castShadow = true;
+  bezel.receiveShadow = true;
+  bezel.position.set(-0.2, 0.08 + 0.125, -0.1);
+  root.add(bezel);
+
+  function createSegMat() {
+    return new THREE.MeshStandardMaterial({
+      color: 0x330000,
+      emissive: 0x000000,
+      roughness: 0.3,
+      metalness: 0.1
+    });
+  }
+
+  var segConfigs = [
+    { name: 'segA', w: 0.35, d: 0.08, x: 0, z: -0.52 },
+    { name: 'segB', w: 0.08, d: 0.36, x: 0.22, z: -0.28 },
+    { name: 'segC', w: 0.08, d: 0.36, x: 0.22, z: 0.18 },
+    { name: 'segD', w: 0.35, d: 0.08, x: 0, z: 0.42 },
+    { name: 'segE', w: 0.08, d: 0.36, x: -0.22, z: 0.18 },
+    { name: 'segF', w: 0.08, d: 0.36, x: -0.22, z: -0.28 },
+    { name: 'segG', w: 0.35, d: 0.08, x: 0, z: -0.05 }
+  ];
+
+  segConfigs.forEach(function(c) {
+    var segGeo = new THREE.BoxGeometry(c.w, 0.04, c.d);
+    var segMat = createSegMat();
+    var seg = new THREE.Mesh(segGeo, segMat);
+    seg.name = c.name;
+    seg.userData.animTag = c.name;
+    seg.castShadow = true;
+    seg.position.set(-0.2 + c.x, 0.08 + 0.25 + 0.02, -0.1 + c.z);
+    root.add(seg);
+  });
+
+  var dpGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.04, 16);
+  var dpMat = createSegMat();
+  var dp = new THREE.Mesh(dpGeo, dpMat);
+  dp.name = 'segDP';
+  dp.userData.animTag = 'segDP';
+  dp.castShadow = true;
+  dp.position.set(-0.2 + 0.36, 0.08 + 0.25 + 0.02, -0.1 + 0.42);
+  root.add(dp);
+
+  var pinDefs = [
+    { name: 'A', x: -0.6 },
+    { name: 'B', x: -0.3 },
+    { name: 'C', x: 0.0 },
+    { name: 'D', x: 0.3 },
+    { name: 'GND', x: 0.6 }
+  ];
+  pinDefs.forEach(function(pd) {
+    var pObj = new THREE.Object3D();
+    pObj.name = 'pin_' + pd.name;
+    pObj.position.set(pd.x, 0.08, 0.82);
+    root.add(pObj);
+  });
+
+  return root;
+}
+
+const SIM_MATRIX = [
+  {
+    id: "battery",
+    name: { ar: "بطارية كيميائية", en: "Chemical Battery" },
+    symbol: "BT",
+    model: "V_term = V_nom - I_load * R_int; SOC(t) = SOC_0 - (1 / Q_max) * ∫ I_load dt; V_nom = f(SOC)",
+    pins: ["V+", "V-"],
+    sim: "يقوم المحاكي بنمذجة البطارية كمصدر جهد حقيقي غير مثالي يعتمد على حالة الشحن والمقاومة الداخلية. يتم حساب جهد الأطراف لحظياً بطرح الهبوط في الجهد الناتج عن مرور تيار الحمل داخل المقاومة الداخلية من القوة الدافعة الكهربائية. بالإضافة إلى ذلك، يتتبع المحاكي التكامل الزمني للتيار المسحوب لحساب استنزاف سعة البطارية، مما يتيح محاكاة واقعية لهبوط الجهد تدريجياً وارتفاع المقاومة الداخلية مع انخفاض الشحن حتى مرحلة التفريغ التام.",
+    tags: ["power", "source", "dc", "energy", "electrochemical"]
+  },
+  {
+    id: "vsrc",
+    name: { ar: "مصدر جهد مثالي", en: "Ideal DC Voltage Source" },
+    symbol: "VSRC",
+    model: "V_out = V_set; I_out = V_set / R_load (I_max = ∞, P_diss = V_out * I_out)",
+    pins: ["V+", "GND"],
+    sim: "يمثل هذا العنصر منبعاً كهربائياً مثالياً يحافظ على استقرار فارق الجهد المضبوط بين طرفيه بدقة مطلقة بغض النظر عن قيمة المقاومة المكافئة للحمل الموصول به أو شدة التيار المتدفق. في مصفوفة الحل الرياضي، يُعامل المصدر كقيد جهد يحدد مباشرة إمكانات العقد، حيث يتم اشتقاق التيار المار عبره من خلال تطبيق قانون كيرشوف للتيارات عند العقدة المتصلة، مع إمكانية إطلاق تنبيه برمجي في حال تجاوز القدرة المبددة الحدود الآمنة للدارة.",
+    tags: ["power", "ideal", "voltage", "supply", "rail"]
+  },
+  {
+    id: "isrc",
+    name: { ar: "مصدر تيار مثالي", en: "Ideal DC Current Source" },
+    symbol: "ISRC",
+    model: "I_out = I_set; V_out = I_set * R_load; V_compliance = [-∞, +∞]",
+    pins: ["I_IN", "I_OUT"],
+    sim: "يحاكي هذا المكون ضخ تيار كهربائي ثابت القيمة ومحدد سلفاً داخل الفرع المتصل به، بصرف النظر كلياً عن قيمة ممانعة الحمل أو جهد العقد المرتبطة. في المحاكي العقدي المعدل، يُحقن هذا التيار مباشرة كقيمة جبرية في متجه التيارات للعقد المعنية، مما يؤدي إلى توليد فرق جهد ديناميكي على طرفيه يتناسب طردياً مع مقاومة المسار، وتُظهر النمذجة كيف يرتفع جهد المصدر آنياً لمحاولة الحفاظ على تدفق الشحنات حتى في مسارات المقاومة العالية.",
+    tags: ["power", "current", "ideal", "active", "source"]
+  },
+  {
+    id: "resistor",
+    name: { ar: "مقاومة كربونية", en: "Carbon Film Resistor" },
+    symbol: "R",
+    model: "I = (V1 - V2) / R; P = (V1 - V2)^2 / R; احتراق عند P > P_rating (افتراضياً 0.25W)",
+    pins: ["P1", "P2"],
+    sim: "تُنمذج المقاومة الخطية الثابتة وفق قانون أوم الأساسي كموصلية محددة تُدرج مباشرة في مصفوفة المواصلة العامة للنظام. يقوم المحاكي بحساب فرق الجهد بين الطرفين لتحديد قيمة التيار المار رياضياً، إلى جانب حساب الاستطاعة الحرارية المبددة بصيغة الجهد المربع مقسوماً على المقاومة في كل دورة زمنية؛ وإذا تجاوزت هذه القدرة الحد المقنن، يقوم المحاكي بتغيير حالة العنصر إلى عطل دائري مفتوح مع إظهار أثر الاحتراق الفيزيائي للمتعلم.",
+    tags: ["passive", "linear", "resistor", "thermal", "basic"]
+  },
+  {
+    id: "potentiometer",
+    name: { ar: "مقاومة متغيرة", en: "Rotary Potentiometer" },
+    symbol: "POT",
+    model: "R_A_W = R_total * (1 - α); R_W_B = R_total * α; V_W = V_B + α * (V_A - V_B); α ∈ [0, 1]",
+    pins: ["TERM_A", "WIPER", "TERM_B"],
+    sim: "يُعامل المجزئ الجهدي المقاومي كعقدة منزلقة تقسم المقاومة الكلية إلى مقاومتين داخليتين متسلسلتين تتغير قيمتهما خطياً أو لوغاريتمياً وفق موضع المقبض الزاوي المحدد بنسبة مئوية. يقوم المحاكي بتحديث مصفوفة التوصيل العقدي آنياً عند كل حركة للمنزلق، مما يغير نسب تجزئة الجهد عند طرف الممسحة وممانعة الخرج المكافئة، مما يتيح دراسة تأثير التحميل عند توصيل مقاومة خارجية إضافية على طرف المنزلق وفقدان استقرار التجزئة الخطية.",
+    tags: ["passive", "divider", "variable", "analog", "input"]
+  },
+  {
+    id: "ldr",
+    name: { ar: "مقاومة ضوئية", en: "Light Dependent Resistor" },
+    symbol: "LDR",
+    model: "R_ldr = R_dark * (Lux / Lux_dark)^(-γ); I = V_ldr / R_ldr; γ ≈ 0.7 - 0.9",
+    pins: ["P1", "P2"],
+    sim: "تعتمد نمذجة المقاومة الضوئية على مبدأ الموصلية الضوئية لأشباه الموصلات، حيث تُحسب قيمة المقاومة الآنية كتابع أسي عكسي لمستوى الإضاءة المحيطة بوحدة اللوكس المقاسة. يقوم المحاكي بحساب التدفق الضوئي الافتراضي الساقط عليها لتحديد المقاومة المكافئة وتحديث فرع الدارة المعني، مما ينتج عنه استجابة تدريجية غير خطية تحاكي خصائص كبريتيد الكادميوم الفيزيائية، بما في ذلك التباطؤ الزمني الطفيف لعودة المقاومة إلى قيمتها المظلمة العالية عند انقطاع الضوء المفاجئ.",
+    tags: ["sensor", "light", "analog", "photoresistor", "opto"]
+  },
+  {
+    id: "thermistor",
+    name: { ar: "مقاومة حرارية NTC", en: "NTC Thermistor" },
+    symbol: "NTC",
+    model: "1/T = 1/T0 + (1/β) * ln(R/R0); R(T) = R0 * exp(β * (1/T - 1/T0)); T بالكلفن",
+    pins: ["P1", "P2"],
+    sim: "تعتمد محاكاة الثيرمستور ذي المعامل الحراري السلبي على معادلة بيتا التجريبية للربط بين المقاومة الكهربائية ودرجة الحرارة المطلقة للمحيط بالكلفن. يحول المحاكي قيمة الحرارة المدخلة إلى قيمة مقاومة أومية متغيرة تُحدّث ديناميكياً داخل مصفوفة المحاكاة، مما يتيح للطلاب اختبار دوائر المراقبة الحرارية وجسور التوازن ودوائر التبريد الذكية، مع أخذ تأثير التسخين الذاتي الناجم عن تدفق التيارات الكبيرة بالاعتبار عند حساب الاتزان الحراري للنبيطة.",
+    tags: ["sensor", "thermal", "temperature", "ntc", "analog"]
+  },
+  {
+    id: "capacitor",
+    name: { ar: "مكثف إلكتروليتي", en: "Electrolytic Capacitor" },
+    symbol: "C",
+    model: "I_c(t) = C * (dV/dt); تفكيك زمني: I_c(t) = (2C/Δt)*(V(t) - V(t-Δt)) - I_c(t-Δt); V_max تجاوز = انفجار",
+    pins: ["ANODE", "CATHODE"],
+    sim: "يُحاكى المكثف كعنصر تخزين طاقة ديناميكي باستخدام طريقة التكامل شبه المنحرف، حيث يُستبدل في كل خطوة زمنية بمقاومة مكافئة على التفرع مع مصدر تيار تاريخي يمثل الشحنة التراكمية السابقة. يحسب المحاكي معدل تغير الجهد بالنسبة للزمن بدقة لتوليد منحنيات الشحن والتفريغ الأسية بدقة فائقة، كما يراقب القطبية الصحيحة للجهد المطبق وحدود الانهيار الكهربائي، مسبباً تدميراً بصرياً افتراضياً للعنصر إذا عُكست أقطابه أو تُجُوِز أقصى جهد عزل مصرح به.",
+    tags: ["passive", "reactive", "capacitor", "transient", "storage"]
+  },
+  {
+    id: "diode",
+    name: { ar: "ديود سيليكوني", en: "Silicon Rectifier Diode" },
+    symbol: "D",
+    model: "I_d = I_s * (exp(V_d / (n * V_t)) - 1); تقريب خطي: V_d ≥ 0.7V => توصيل (V_f ≈ 0.7V), V_d < 0.7V => قطع",
+    pins: ["ANODE", "CATHODE"],
+    sim: "يُنمذج الديود السيليكوني اعتماداً على معادلة شوكلي غير الخطية لحساب تيار الانتشار والانجراف العكسي كتابع لفرق الجهد المطبق على الوصلة الثنائية وجهد العتبة الحراري. يوظف المحاكي طريقة نيوتن-رافسون الرياضية للتقارب العددي وتحديث مقاومة التوصيل التفاضلية في كل تكرار، مما يعكس بوضوح عتبة التوصيل الأمامي عند سبعة أعشار الفولت والتيار العكسي فائق الصغر، محاكياً وظائف التقويم، كبح الجهد العكسي، وسلوك التوصيل غير المتماثل في الدارات المختلفة.",
+    tags: ["semiconductor", "diode", "rectifier", "nonlinear", "pn"]
+  },
+  {
+    id: "zener",
+    name: { ar: "ديود زينر", en: "Zener Voltage Regulator Diode" },
+    symbol: "ZENER",
+    model: "انحياز أمامي: I = Shockley; انحياز عكسي: V_rev < V_z => I ≈ -I_s; V_rev ≥ V_z => V_rev ≈ V_z + I_z * R_z",
+    pins: ["ANODE", "CATHODE"],
+    sim: "يحاكي ديود زينر السلوك التوجيهي للديود العادي في الانحياز الأمامي، مع إضافة نموذج تفصيلي لظاهرة الانهيار الكمومي النفقي والانهيار الانهياري عند الانحياز العكسي. عندما يتجاوز الجهد العكسي المطبق قيمة عتبة زينر الاسمية، تنتقل الوصلة إلى حالة الممانعة المنخفضة لتثبيت الجهد عند قيمة ثابتة تقريباً، مما يمكن الطلاب من فهم دارات تثبيت الجهد، حماية المداخل التماثلية للميكروكنترولر، وتأثير تيار الإمساك الأدنى لضمان استقرار التنظيم.",
+    tags: ["semiconductor", "zener", "regulator", "breakdown", "protection"]
+  },
+  {
+    id: "led",
+    name: { ar: "صمام ثنائي باعث للضوء", en: "Light Emitting Diode" },
+    symbol: "LED",
+    model: "I = (V_anode - V_cathode - V_f) / R_internal; سطوع = clamp(I / 0.02, 0, 1); احتراق إذا I > 0.04A",
+    pins: ["ANODE", "CATHODE"],
+    sim: "يعامل المحاكي الليد كثنائي شبه موصل ذي جهد عتبة أمامي محدد تبعاً للونه يتراوح بين 1.8 و3.2 فولت مع مقاومة ديناميكية داخلية منخفضة. يتم حساب شدة الإضاءة الناتجة خطياً بناءً على تيار التشغيل الأمامي الفعلي مقارنة بالقيمة الاسمية البالغة عشرين ملي أمبير؛ وفي حال غياب مقاومة الحد من التيار وتجاوز التيار المار عتبة الأربعين ملي أمبير، ينتقل المحاكي فوراً لنمذجة الاحتراق الحراري الداخلي ويقطع الدارة نهائياً للتنبيه.",
+    tags: ["opto", "led", "indicator", "diode", "visual"]
+  },
+  {
+    id: "rgbled",
+    name: { ar: "ليد ثلاثي الألوان مشترك المهبط", en: "Common Cathode RGB LED" },
+    symbol: "RGB_LED",
+    model: "I_c = max(0, (V_pin_c - V_cathode - V_f_c) / R_c); Color = RGB(f(I_R), f(I_G), f(I_B)); احتراق عند I_c > 0.04A",
+    pins: ["RED", "GREEN", "BLUE", "CATHODE"],
+    sim: "يُحاكي هذا المكون ثلاث بلورات شبه موصلة مستقلة متصلة داخلياً بمهبط أرضي موحد، تمتلك كل منها جهداً أمامياً مختلفاً بحسب الطول الموجي للون. يحل المحاكي تيارات القنوات الثلاث بصورة منفصلة لحساب مقدار الانبعاث الفوتوني لكل لون ومزجها رياضياً في فضاء الألوان لإنتاج اللون المركب الظاهر للمتعلم، كما يتيح رصد نبضات تعديل عرض النبضة الصادرة من الأردوينو وتكاملها بصرياً لإظهار تدرج الألوان المتغيرة بسلاسة تامة.",
+    tags: ["opto", "rgb", "led", "pwm", "display"]
+  },
+  {
+    id: "btn",
+    name: { ar: "زر ضاغط لحظي", en: "Momentary Push Button" },
+    symbol: "BTN",
+    model: "مفتوح: R_sw = 10^9 Ω; مغلق: R_sw = 0.05 Ω; ارتداد: V_out(t) = V_final + Noise(t_bounce < 5ms)",
+    pins: ["T1A", "T1B", "T2A", "T2B"],
+    sim: "يُمثل الزر الضاغط كقاطعة ميكانيكية ثنائية الحالة تغير موصليتها الكهربائية بين مقاومة عزل شبه لانهائية في حالة الإفلات ومقاومة تلامس ضئيلة جداً عند الضغط. يدمج المحاكي خوارزمية محاكاة الارتداد الميكانيكي التي تولد سلسلة من النبضات العشوائية السريعة خلال الأجزاء الأولى من الثانية من لحظة التلامس، مما يضع الطلاب أمام مشكلة القراءات الخاطئة المتعددة عند معالجة المقاطعات في الأردوينو ويدفعهم لتطبيق حلول برمجية لإلغاء الارتداد.",
+    tags: ["electromechanical", "switch", "button", "input", "digital"]
+  },
+  {
+    id: "sw",
+    name: { ar: "مفتاح تبديل قلاب", en: "SPDT Slide/Toggle Switch" },
+    symbol: "SW_SPDT",
+    model: "الموضع 1: R(COM, A) = 0.02 Ω, R(COM, B) = 10^9 Ω; الموضع 2: العكس تماماً",
+    pins: ["COM", "L1", "L2"],
+    sim: "يحاكي المفتاح القلاب أحادي القطب ثنائي المسار وظيفة التوجيه الميكانيكي للتيار بين مسارين كهربائيين معزولين تماماً عن بعضهما مع وجود نقطة مشتركة دائمة. يقوم المحاكي بتحديث مصفوفة التوصيل بنقل الاتصال ذي المقاومة شبه المعدومة بين القطب المشترك والطرف المحدد ووضع الطرف الآخر في حالة العزل المطلق، مما يتيح للدارات محاكاة اختيار مصادر التغذية، تبديل اتجاهات الإشارات المنطقية، وبناء دوائر التحكم الثنائية البسيطة والآمنة.",
+    tags: ["electromechanical", "switch", "spdt", "control", "digital"]
+  },
+  {
+    id: "relay",
+    name: { ar: "مرحل كهرومغناطيسي 5V", en: "5V SPDT Relay" },
+    symbol: "RELAY",
+    model: "I_coil = (V_c1 - V_c2) / R_coil; تفعيل إذا V_coil ≥ V_pickup (≈3.75V); انفصال إذا V_coil ≤ V_dropout (≈1.0V)",
+    pins: ["COIL+", "COIL-", "COM", "NO", "NC"],
+    sim: "تعتمد محاكاة المرحل على النمذجة المزدوجة بين الدائرة الكهرومغناطيسية للملف التحريضي ودائرة التلامس الميكانيكية المعزولة كهربائياً. يراقب المحاكي تيار وجهد الملف، وعند بلوغ عتبة الجذب المغناطيسي يتغير مسار التلامس الداخلي بعد تأخير زمني ميكانيكي قصير يحاكي حركة العضو الدوار، كما يحاكي المحاكي ظاهرة التباطؤ المغناطيسي في جهد الإفلات، ويولد جهداً تحريضياً عكسياً ضخماً عند فصل الملف لدراسة أهمية ديود التخميد الموازي.",
+    tags: ["electromechanical", "relay", "isolation", "actuator", "inductive"]
+  },
+  {
+    id: "npn",
+    name: { ar: "ترانزستور NPN ثنائي القطب", en: "NPN BJT Transistor" },
+    symbol: "Q_NPN",
+    model: "قطع: V_be < 0.7V => I_c=0; فعال: I_c = β * I_b; تشبع: V_ce_sat ≈ 0.2V, I_c < β * I_b; V_be ≈ 0.7V",
+    pins: ["BASE", "COLLECTOR", "EMITTER"],
+    sim: "تعتمد محاكاة ترانزستور ثنائي القطب على نموذج إيبرس-مول المبسط لتتبع حالات العمل الثلاث: القطع، التكبير الخطي، والتشبع الكامل. يقوم المحاكي بحساب تيار القاعدة الناتج عن تجاوز جهد الحاجز، ثم يحدد تيار المجمع بناءً على معامل التكبير الحالي؛ وفي حال انخفاض جهد المجمع-المشع إلى عتبة التشبع المحددة بـ 0.2 فولت، يقيد المحاكي التيار ويثبت الجهد لمحاكاة دور الترانزستور كمفتاح إلكتروني فعال لقيادة الأحمال الثقيلة.",
+    tags: ["semiconductor", "transistor", "bjt", "npn", "amplifier", "switch"]
+  },
+  {
+    id: "pnp",
+    name: { ar: "ترانزستور PNP ثنائي القطب", en: "PNP BJT Transistor" },
+    symbol: "Q_PNP",
+    model: "قطع: V_eb < 0.7V => I_c=0; فعال: I_c = β * I_b; تشبع: V_ec_sat ≈ 0.2V; اتجاه التيارات خارج من المشع والقاعدة",
+    pins: ["BASE", "COLLECTOR", "EMITTER"],
+    sim: "يعمل نموذج ترانزستور الـ PNP بشكل تكاملي متناظر مع الـ NPN ولكن مع عكس كامل لقطبية فروق الجهد واتجاهات تدفق التيارات الرئيسية. يدخل الترانزستور في طور التوصيل الفعال عندما يهبط جهد القاعدة بمقدار سبعة أعشار الفولت على الأقل عن جهد المشع الموصول بالجهد الموجب، ويقوم المحاكي بتطبيق شروط التكبير أو التشبع لحساب تيار المجمع المتدفق نحو الحمل الخارجي، مستعرضاً بدقة آليات التحكم في الجانب العلوي للتغذية.",
+    tags: ["semiconductor", "transistor", "bjt", "pnp", "high-side"]
+  },
+  {
+    id: "mosfet",
+    name: { ar: "ترانزستور حقل N-Channel", en: "N-Channel Logic MOSFET" },
+    symbol: "MOS_N",
+    model: "قطع: V_gs < V_th => I_d=0; خطي: V_ds < V_gs - V_th => I_ds = k[(V_gs - V_th)V_ds - 0.5V_ds^2]; تشبع: I_ds = 0.5k(V_gs - V_th)^2",
+    pins: ["GATE", "DRAIN", "SOURCE"],
+    sim: "يُنمذج ترانزستور التأثير الحقلي ذو البوابة المعزولة كعنصر يتم التحكم فيه بالجهد المطلق بدلاً من التيار، مع مقاومة دخل شبه لانهائية للبوابة. يقوم المحاكي بمقارنة فرق جهد البوابة-المصدر بجهد العتبة، وعند تجاوزه ينتقل الموسفت من حالة القطع إلى المنطقة الخطية متمثلاً بمقاومة تشغيل داخلية منخفضة جداً تحسب بدقة هبوط الجهد على المصب، مما يسمح بمحاكاة قيادة الأحمال الكبيرة وتطبيقات التقطيع عالي التردد بكفاءة حرارية فائقة.",
+    tags: ["semiconductor", "mosfet", "transistor", "fet", "power", "switch"]
+  },
+  {
+    id: "lm358",
+    name: { ar: "مكبر عملياتي مزدوج LM358", en: "LM358 Operational Amplifier" },
+    symbol: "OPAMP",
+    model: "V_out = clamp(A_ol * (V_in+ - V_in-), V_ee, V_cc - 1.5V); A_ol ≈ 100,000; I_in+ = I_in- ≈ 0",
+    pins: ["OUT", "IN-", "IN+", "VCC", "GND"],
+    sim: "تعتمد محاكاة المكبر التشغيلي على نموذج التكبير التفاضلي ذي الكسب الحلقي المفتوح الهائل مع فرض تيارات دخل انحيازية شبه معدومة. يقوم المحاكي بمراقبة فرق الجهد بين المدخلين العاكس وغير العاكس لإنتاج جهد الخرج المقيد بحدود التغذية الحقيقية؛ ونظراً لعدم قدرة المكبر على الوصول لمستوى التغذية العلوي، يقيد المحاكي الخرج أوتوماتيكياً بجهد التغذية مطروحاً منه واحد ونصف فولت، محاكياً خصائص الأجهزة الحقيقية بدقة.",
+    tags: ["integrated-circuit", "opamp", "analog", "amplifier", "linear"]
+  },
+  {
+    id: "comparator",
+    name: { ar: "مقارن جهدي LM393", en: "LM393 Open-Collector Comparator" },
+    symbol: "COMP",
+    model: "إذا V_in+ > V_in- => خروج مفتوح (عائم High-Z); إذا V_in+ ≤ V_in- => توصيل بالأرضي (V_out ≈ 0.1V); يحتاج Pull-up",
+    pins: ["OUT", "IN-", "IN+", "VCC", "GND"],
+    sim: "يتميز هذا النموذج بمحاكاة مقارن عالي السرعة بمخرج مجمع مفتوح، حيث لا يضخ الخرج أي جهد موجب بشكل مباشر بل يتصرف كمفتاح مؤرض. يحل المحاكي فارق الجهد التماثلي اللحظي بين المدخلين، فإذا كان المدخل غير العاكس أعلى تظل ترانزستورات الخرج في حالة قطع ويبقى الطرف عائماً ليعتمد جهده كلياً على مقاومة الرفع الخارجية، بينما يتم سحب الخرج للصفر التام عند هبوط الجهد الإيجابي.",
+    tags: ["integrated-circuit", "comparator", "open-collector", "threshold", "analog"]
+  },
+  {
+    id: "buzzer",
+    name: { ar: "طنان كهرضغطي بيزو", en: "Piezoelectric Buzzer" },
+    symbol: "BUZ",
+    model: "موجب: f_sound = f_signal; شدة = clamp((V_rms / V_rated) * 85dB, 0, 110dB); مقاومة مكافئة = R_s + 1/(s*C_p)",
+    pins: ["POS", "NEG"],
+    sim: "يُحاكي الطنان كمزيج بين حمل سعوي كهربائي ومولد اهتزاز ميكانيكي ينتج موجات صوتية مسموعة متناسبة مع تردد الإشارة المدخلة وجهدها الفعال. يحلل المحاكي شكل الإشارة المطبقة من حيث التردد والجهد، فإذا كانت مستمرة أو خاضعة لتعديل التردد البرمجي، يتم استخلاص التردد الأساسي وتوليد النغمة الصوتية في واجهة المتصفح، مع محاكاة تأثير استهلاك التيار النبضي والاستجابة الترددية التي تبلغ ذروتها عند تردد الرنين الاسمي.",
+    tags: ["output", "audio", "piezo", "sound", "pwm"]
+  },
+  {
+    id: "dcmotor",
+    name: { ar: "محرك تيار مستمر", en: "Brushed DC Motor" },
+    symbol: "M_DC",
+    model: "V_in - E_emf = I * R_a + L_a * (dI/dt); E_emf = K_e * ω; T_e = K_t * I = J * (dω/dt) + B * ω + T_load",
+    pins: ["M+", "M-"],
+    sim: "تعتمد النمذجة الكهروميكانيكية لمحرك التيار المستمر على معادلات الجهد الكهرومغناطيسي العكسي المولد وعزم القصور الذاتي الميكانيكي لدوار المحرك. يحسب المحاكي التيار المسحوب بعد طرح القوة الدافعة الكهربائية المضادة المتناسبة مع السرعة الزاوية، ويقوم بتكامل عزم الدوران الصافي زمنياً لتحديد تسارع وسرعة دوران المحور، مما يُظهر للمتعلم بوضوح ظاهرة تيار الإقلاع العالي عند البدء، وأثر تغير جهد التغذية، والفرملة التوليدية عند عكس الأقطاب.",
+    tags: ["actuator", "motor", "electromechanical", "inductive", "pwm"]
+  },
+  {
+    id: "servo",
+    name: { ar: "محرك مؤازر 180 درجة", en: "SG90 Micro Servo Motor" },
+    symbol: "SERVO",
+    model: "Target_Angle = (Pulse_Width_ms - 1.0ms) / 1.0ms * 180°; dθ/dt = clamp((Target - θ) * K_p, -Speed_max, Speed_max)",
+    pins: ["SIGNAL", "VCC", "GND"],
+    sim: "تدمج محاكاة السيرفو وحدة استقبال إشارات التحكم النبضية مع حلقة تحكم تناسبية مغلقة لمحرك التوجيه الزاوي الدقيق. يستخلص المحاكي عرض النبضة الموجبة المتكررة كل عشرين ميلي ثانية لتحويلها إلى زاوية مستهدفة بين الصفر والمائة وثمانين درجة، ثم يحاكي دوران تروس المحرك بسرعة قصوى محددة مع حساب استهلاك التيار اللحظي الذي يرتفع أثناء حركة المحور ويستقر عند قيمة صيانة الموضع الأساسية.",
+    tags: ["actuator", "servo", "motor", "pwm", "robotics"]
+  },
+  {
+    id: "stepper",
+    name: { ar: "محرك خطوي رباعي الأطوار", en: "28BYJ-48 Stepper Motor" },
+    symbol: "STEPPER",
+    model: "Sequence: [A, AB, B, BC, C, CD, D, DA]; Step_Angle = 5.625° / 64; θ(k+1) = θ(k) ± Step_Angle",
+    pins: ["IN1", "IN2", "IN3", "IN4", "VCC", "GND"],
+    sim: "يحاكي المحرك الخطوي كأربعة ملفات كهرومغناطيسية مستقلة يجب تفعيلها بنمط تعاقبي محدد لتوليد المجال المغناطيسي الدوار وتحريك المسنن الداخلي. يراقب المحاكي التغير المنطقي على المداخل الأربعة لتقدير الخطوة الزاوية بالاعتماد على مصفوفة الحالات المنطقية للخطوة الكاملة أو نصف الخطوة، مع احتساب نسبة صندوق التروس المخفض لإنتاج إزاحة دورانية دقيقة في الواجهة المرئية، مبيناً عواقب الإثارة الخاطئة للملفات في توقف المحرك واهتزازه.",
+    tags: ["actuator", "stepper", "motor", "digital", "positioning"]
+  },
+  {
+    id: "ultra",
+    name: { ar: "حساس الموجات فوق الصوتية", en: "HC-SR04 Ultrasonic Distance Sensor" },
+    symbol: "SR04",
+    model: "Echo_Pulse_Width = (2 * Distance_cm) / 0.0343 cm/μs; T_trig ≥ 10μs => تفعيل; Max_Dist = 400cm",
+    pins: ["VCC", "TRIG", "ECHO", "GND"],
+    sim: "تعتمد نمذجة حساس المسافة على محاكاة زمن ارتداد الموجات الصوتية في الهواء بسرعة تقارب ثلاثمائة وثلاثة وأربعين متراً في الثانية. ينتظر المحاكي نبضة إطلاق برمجية بعرض لا يقل عن عشرة ميكروثانية، فيقوم بحساب المسافة الافتراضية نحو العائق المحدد في بيئة المحاكاة وتحويلها إلى نبضة مربعة متناسبة زمنياً تخرج عبر طرف الصدى، مما يتيح للأردوينو قياس الزمن بدقة عبر دالة القياس الزمني واستنتاج البعد.",
+    tags: ["sensor", "ultrasonic", "distance", "time-of-flight", "digital"]
+  },
+  {
+    id: "ir",
+    name: { ar: "حساس تتبع المسار بالأشعة تحت الحمراء", en: "Infrared Obstacle/Line Tracking Sensor" },
+    symbol: "IR_TRACK",
+    model: "V_reflected = K_reflectivity / Distance^2; Out_Digital = (V_reflected < V_threshold) ? HIGH : LOW",
+    pins: ["VCC", "GND", "DO", "AO"],
+    sim: "يحاكي هذا العنصر ثنائياً باعثاً للأشعة تحت الحمراء ومستقبلاً ضوئياً متجاورين مع مقارن جهدي داخلي مزود بمقاومة معايرة متغيرة. يقوم المحاكي بحساب معامل امتصاص وانعكاس السطح الافتراضي المقابل للضوء غير المرئي، حيث تمتص الخطوط السوداء الداكنة الأشعة بينما تعكسها المساحات البيضاء، مما يغير تيار المستلم وجهده التماثلي ويؤدي إلى تبديل المخرج الرقمي بين الحالتين المنطقيتين، محاكياً وظائف روبوتات تتبع الخط وتجنب الاصطدام.",
+    tags: ["sensor", "infrared", "optocoupler", "robotics", "digital"]
+  },
+  {
+    id: "pir",
+    name: { ar: "حساس حركة بالأشعة تحت الحمراء الحرارية", en: "HC-SR501 PIR Motion Sensor" },
+    symbol: "PIR",
+    model: "Output = Motion_Detected ? (Pulse_High for T_delay = f(R_time)) : LOW; V_high = 3.3V; I_quiescent ≈ 50μA",
+    pins: ["VCC", "OUT", "GND"],
+    sim: "تعتمد نمذجة حساس الحركة السلبي على محاكاة التغير التفاضلي في الإشعاع الحراري تحت الأحمر المتلقى عبر بلورتين كهرضغطيتين متقابلتين من خلال عدسة فرينل. عند تحريك جسم دافئ افتراضياً في مجال الرؤية، يسجل المحاكي تفاوتاً حرارياً يؤدي إلى إطلاق نبضة منطقية مستقرة بجهد 3.3 فولت لفترة زمنية محددة وفق موضع مقاومة ضبط التأخير، متيحاً تدريب الأطفال على أنظمة الإنذار الذاتي والإضاءة الموفرة للطاقة.",
+    tags: ["sensor", "motion", "pir", "security", "digital"]
+  },
+  {
+    id: "flame",
+    name: { ar: "حساس كشف اللهب", en: "Flame Detection Sensor" },
+    symbol: "FLAME",
+    model: "I_sensor = I_dark + Responsivity * (Radiation_Intensity_760_1100nm); V_AO = VCC - I_sensor * R_gain",
+    pins: ["VCC", "GND", "DO", "AO"],
+    sim: "يحاكي مستشعر اللهب الصمام الثنائي الحساس للأطياف الضوئية الممتدة بين سبعمائة وستين وألف ومائة نانومتر المصاحبة لاحتراق المواد الهيدروكربونية. يولد المحاكي قيمة شدة إشعاع افتراضية تتناقص مع مربع المسافة عن شعلة النار المحاكاة، لتحديد التيار العكسي المار في الحساس وحساب الجهد التماثلي الناتج، مع مقارنته بعتبة التبديل الرقمي لإنتاج إشارة إنذار مبكرة تتيح لبرمجية الأردوينو اتخاذ تدابير إخماد الحريق أو إطلاق صافرات الإنذار.",
+    tags: ["sensor", "optical", "flame", "safety", "analog"]
+  },
+  {
+    id: "gas",
+    name: { ar: "حساس غاز MQ-2", en: "MQ-2 Gas and Smoke Sensor" },
+    symbol: "MQ2",
+    model: "R_s = A * (ppm)^(-B); V_out = VCC * [R_load / (R_s(ppm) + R_load)]; سخان: R_h = 33Ω, P_heat = V^2 / R_h",
+    pins: ["VCC", "GND", "DO", "AO"],
+    sim: "تعتمد نمذجة حساس الغاز على محاكاة التغير الكيميائي السطحي لطبقة ثاني أكسيد القصدير الحساسة عند تفاعلها مع الغازات القابلة للاشتعال بوجود حرارة السخان الداخلي. يحسب المحاكي هبوط مقاومة المستشعر كتابع لوغاريتماتي عكسي لتركيز جزيئات الدخان أو الغاز المحيطة المعبر عنها بأجزاء في المليون، مما يرفع جهد الخرج التماثلي المأخوذ عبر مجزئ الجهد، ليوفر للطلاب تجربة حية لكشف التسريبات والإنذار بالغازات الخطرة.",
+    tags: ["sensor", "gas", "chemical", "analog", "smoke"]
+  },
+  {
+    id: "reed",
+    name: { ar: "مفتاح قصبة مغناطيسي", en: "Magnetic Reed Switch" },
+    symbol: "REED",
+    model: "حالة التلامس = (B_field ≥ B_close) ? مغلق (0.1Ω) : ((B_field ≤ B_open) ? مفتوح (10^9Ω) : السابق)",
+    pins: ["P1", "P2"],
+    sim: "يُحاكي المفتاح القصبي كزوج من الصفائح المعدنية المغناطيسية المغلفة داخل أنبوب زجاجي مفرغ، تتلامس ميكانيكياً بفعل المجال المغناطيسي الخارجي. يراقب المحاكي شدة وقرب المجال المغناطيسي المسلط من مغناطيس افتراضي محدد بوحدة الميلي تسلا، مع تطبيق تخلف مغناطيسي دقيق يتطلب اقتراباً قوياً للإغلاق مع الحفاظ على الاتصال حتى ابتعاد المغناطيس لمسافة أكبر، موفراً محاكاة ممتازة لحساسات فتح الأبواب وحساب سرعة الدوران.",
+    tags: ["sensor", "magnetic", "switch", "security", "electromechanical"]
+  },
+  {
+    id: "shake",
+    name: { ar: "حساس اهتزاز ميكانيكي سبرينغ", en: "Vibration / Tilt Spring Switch" },
+    symbol: "SHAKE",
+    model: "إذا Acceleration > Threshold_G => اتصال متقطع (R = 0Ω لفترات عشوائية 1-10ms); سكون => R = 10^9Ω",
+    pins: ["P1", "P2"],
+    sim: "يعتمد هذا الحساس في محاكاته على تصرف نابض مرن دقيق يتوسط أسطوانة معدنية موصلة، حيث يؤدي الاهتزاز الميكانيكي إلى تلامس متقطع. يراقب المحاكي متجهات التسارع والصدمات المفاجئة، وعند تجاوز حد العتبة الفيزيائي، يولد مسار المحاكاة سلسلة سريعة من نبضات الوصل والفصل المؤقتة لمقاومة الفرع، مما يحاكي السلوك الفوضوي الحقيقي للحساس ويتيح للأطفال استكشاف خوارزميات العد وإحصاء الاهتزازات عبر المتحكم الدقيق.",
+    tags: ["sensor", "vibration", "mechanical", "digital", "inertial"]
+  },
+  {
+    id: "mpu",
+    name: { ar: "وحدة قياس القصور الذاتي MPU-6050", en: "MPU-6050 6-DOF IMU" },
+    symbol: "MPU6050",
+    model: "Accel = (Raw_a / 16384.0) g; Gyro = (Raw_g / 131.0) °/s; I2C: Write Reg, Read Bytes; Bus_f = 400kHz",
+    pins: ["VCC", "GND", "SCL", "SDA", "INT"],
+    sim: "تتضمن نمذجة هذه الوحدة محاكاة مستشعرات الجيروسكوب والتسارع ثلاثية المحاور ومكاملتها مع مكدس بروتوكول الاتصال التسلسلي I2C الموجه بالعناوين. يترجم المحاكي الحركة الزاوية والتسارع الخطي للجسم الافتراضي إلى أرقام ثنائية مجزأة ومخزنة في سجلات الذاكرة الداخلية للحساس، مستجيباً لأوامر القراءة والكتابة الصادرة من مكتبة الأردوينو، مما يمكن الطلاب من برمجة موازنة الروبوتات وتتبع الإمالة والتوجيه الملاحي المعقد.",
+    tags: ["sensor", "imu", "i2c", "gyroscope", "accelerometer"]
+  },
+  {
+    id: "tmp36",
+    name: { ar: "حساس حرارة خطي دقيق TMP36", en: "TMP36 Analog Temperature Sensor" },
+    symbol: "TMP36",
+    model: "V_out = (T_celsius * 0.010 V/°C) + 0.500V; T_celsius = (V_out - 0.5V) * 100; نطاق: [-40°C, +125°C]",
+    pins: ["VCC", "VOUT", "GND"],
+    sim: "يُنمذج حساس الحرارة التماثلي كمصدر جهد منظم داخلياً يعتمد خرجه خطياً ومباشرة على درجة حرارة السيليكون دون الحاجة إلى دوائر جسور معقدة. يولد المحاكي جهداً كهربائياً دقيقاً يبدأ بنصف فولت عند درجة التجمد المئوية ويزداد بمقدار عشرة ميلي فولت لكل درجة مئوية واحدة إضافية، مما يوفر محاكاة بالغة البساطة والدقة للمتعلمين لتحويل القراءات التماثلية لمحول الإشارة الرقمية إلى وحدات حرارية مئوية وفهرنهايتية مباشرة.",
+    tags: ["sensor", "temperature", "analog", "linear", "semiconductor"]
+  },
+  {
+    id: "hc05",
+    name: { ar: "وحدة بلوتوث تسلسلية HC-05", en: "HC-05 Serial Bluetooth Module" },
+    symbol: "HC05",
+    model: "UART: Baud=9600, 8N1; V_tx = 3.3V; V_rx_max = 3.3V (يحتاج مجزئ جهد مع 5V); Buffer_FIFO = 64 bytes",
+    pins: ["VCC", "GND", "TXD", "RXD", "STATE", "EN"],
+    sim: "تحاكي هذه الوحدة جسراً متسلسلاً لتحويل البيانات بين منفذ الاتصال التسلسلي للمتحكم وقناة البيانات اللاسلكية بنظام البلوتوث الكلاسيكي. يقوم المحاكي بتسجيل البايتات المارة عبر خط الإرسال والاستقبال وتأطيرها بتوقيت البود المحدد سلفاً مع إدارة طوابير الانتظار المؤقتة للبيانات، كما يفرض قيود الجهد المنطقي الصارم عند 3.3 فولت على مدخل الاستقبال، مبرزاً أهمية مجزئ الجهد المقاومي عند التوصيل بمتحكمات تعمل بجهد خمسة فولتات.",
+    tags: ["communication", "bluetooth", "uart", "serial", "wireless"]
+  },
+  {
+    id: "phone",
+    name: { ar: "واجهة تطبيق هاتف ذكي تحكمية", en: "Virtual Smartphone Controller" },
+    symbol: "PHONE_UI",
+    model: "JSON_Packet = {cmd: string, val: number}; Link = Bluetooth_RFCOMM; Packet_Loss_Rate = f(Noise)",
+    pins: ["BT_RF_LINK", "V_BATT_VIRTUAL"],
+    sim: "تُمثل وحدة الهاتف الذكي واجهة تحكم برمجية تفاعلية تحاكي تطبيقا للأجهزة الذكية يرسل ويستقبل حزم البيانات عبر الرابط اللاسلكي. يوفر المحاكي لوحة أزرار ومنزلقات وشاشة نصية افتراضية تولد نصوصاً وأوامر ترسل مباشرة إلى المستقبل اللاسلكي للدارة مع إمكانية عرض النصوص والردود القادمة من الأردوينو، مما يتيح للأطفال تصميم حلول إنترنت الأشياء والتحكم بالروبوتات ومراقبة البيانات الحيوية من شاشة الهاتف بيسر وسهولة.",
+    tags: ["virtual", "interface", "telemetry", "bluetooth", "iot"]
+  }
+];
+
 /* ===== سجل النماذج الاحترافية v2 (AGY) ===== */
-const PRO2_BUILDERS={ultra:buildPro2_ultra, shake:buildPro2_shake, flame:buildPro2_flame, gas:buildPro2_gas,
+const PRO2_BUILDERS={vsrc:buildPro2_vsrc, isrc:buildPro2_isrc, pot:buildPro2_pot, ldr:buildPro2_ldr, therm:buildPro2_therm,
+  ir:buildPro2_ir, pir:buildPro2_pir, mpu:buildPro2_mpu, opamp:buildPro2_opamp, buzzer:buildPro2_buzzer,
+  rgb:buildPro2_rgb, npn:buildPro2_npn, tmp36:buildPro2_tmp36, sevenseg:buildPro2_sevenseg,
+  ultra:buildPro2_ultra, shake:buildPro2_shake, flame:buildPro2_flame, gas:buildPro2_gas,
   relay:buildPro2_relay, dc:buildPro2_dc, servo:buildPro2_servo, stepper:buildPro2_stepper,
   hc05:buildPro2_hc05, reed:buildPro2_reed, panic:buildPro2_panic, phone:buildPro2_phone,
   battery:buildPro2_battery, charger:buildPro2_charger, driver:buildPro2_driver, kart:buildPro2_kart};
@@ -10704,6 +12393,84 @@ function simulate(){
     (srcByNet[netP]=srcByNet[netP]||[]).push({pid:'M:'+m.id+':V+', v:3.7});
     (srcByNet[netN]=srcByNet[netN]||[]).push({pid:'M:'+m.id+':V-', v:0});
   });
+  /* منبع الجهد المتغير: V = قيمة المقبض */
+  state.modules.forEach(m=>{
+    if(m.type!=='vsrc') return;
+    const v=Math.min(Math.max(m.volts==null?12:m.volts,0),24);
+    const netP=find(mk(m,'V+')), netN=find(mk(m,'V-'));
+    (srcByNet[netP]=srcByNet[netP]||[]).push({pid:'M:'+m.id+':V+', v});
+    (srcByNet[netN]=srcByNet[netN]||[]).push({pid:'M:'+m.id+':V-', v:0});
+  });
+  /* منبع التيار الثابت: تحويل نورتون→ثيفننين (V = I × R المسار) */
+  state.modules.forEach(m=>{
+    if(m.type!=='isrc') return;
+    const amps=Math.min(Math.max(m.amps==null?0.05:m.amps,0.001),2);
+    const netP=find(mk(m,'I+')), netN=find(mk(m,'I-'));
+    /* R للمسار المقاومي بين القطبين: BFS/Dijkstra على حواف مقاومية */
+    const dist={}; dist[netP]=0;
+    const q=[netP];
+    while(q.length){
+      q.sort((a,b)=>dist[a]-dist[b]);
+      const u=q.shift();
+      if(u===netN) break;
+      (adj[u]||[]).forEach(e=>{ if(!e.r||e.r<=0) return; const w=dist[u]+e.r; if(dist[e.to]==null||w<dist[e.to]){ dist[e.to]=w; q.push(e.to); } });
+    }
+    const R=(dist[netN]!=null)?dist[netN]:1e6;
+    const v=Math.min(amps*R, 24);
+    (srcByNet[netP]=srcByNet[netP]||[]).push({pid:'M:'+m.id+':I+', v});
+    (srcByNet[netN]=srcByNet[netN]||[]).push({pid:'M:'+m.id+':I-', v:0});
+    m._droppedV=v;
+  });
+  /* المقاومة المتغيرة: حافتان مقاوميتان A-W و W-B */
+  state.modules.forEach(m=>{
+    if(m.type!=='pot') return;
+    const k=Math.min(Math.max(m.k==null?0.5:m.k,0),1);
+    const R=m.rval||10000;
+    const a=find(mk(m,'A')), w=find(mk(m,'W')), b=find(mk(m,'B'));
+    if(a!==w){ (adj[a]=adj[a]||[]).push({to:w,r:Math.max(R*k,1)}); (adj[w]=adj[w]||[]).push({to:a,r:Math.max(R*k,1)}); }
+    if(w!==b){ (adj[w]=adj[w]||[]).push({to:b,r:Math.max(R*(1-k),1)}); (adj[b]=adj[b]||[]).push({to:w,r:Math.max(R*(1-k),1)}); }
+  });
+  /* LDR: المقاومة تقل أُسّياً مع الضوء */
+  state.modules.forEach(m=>{
+    if(m.type!=='ldr') return;
+    const L=Math.min(Math.max(m.light==null?50:m.light,0),100);
+    const R=1000*Math.pow(200,(100-L)/100);
+    const a=find(mk(m,'A')), b=find(mk(m,'B'));
+    if(a!==b){ (adj[a]=adj[a]||[]).push({to:b,r:R}); (adj[b]=adj[b]||[]).push({to:a,r:R}); }
+    m._R=R;
+  });
+  /* NTC: R=25 اتجاهي */
+  state.modules.forEach(m=>{
+    if(m.type!=='therm') return;
+    const T=Math.min(Math.max(m.temp==null?25:m.temp,-20),120);
+    const R=Math.min(Math.max(10000*Math.exp(3950*(1/(T+273.15)-1/298.15)),50),1e6);
+    const a=find(mk(m,'A')), b=find(mk(m,'B'));
+    if(a!==b){ (adj[a]=adj[a]||[]).push({to:b,r:R}); (adj[b]=adj[b]||[]).push({to:a,r:R}); }
+    m._R=R;
+  });
+  /* الترانزستور NPN: قاعدة>0.7V يقفل C-E */
+  state.modules.forEach(m=>{
+    if(m.type!=='npn') return;
+    const vb=probe(find(mk(m,'B')), true).pos;
+    const ve=probe(find(mk(m,'E')), false).gnd;
+    const vbe = vb&&vb.v ? vb.v : 0;
+    m._on = vbe>0.7;
+    if(m._on){
+      const c=find(mk(m,'C')), e=find(mk(m,'E'));
+      if(c!==e){ (adj[c]=adj[c]||[]).push({to:e,r:10}); (adj[e]=adj[e]||[]).push({to:c,r:10}); }
+    }
+  });
+  /* LM358: مقارن بمكبر A=100 */
+  state.modules.forEach(m=>{
+    if(m.type!=='opamp') return;
+    const vp=probe(find(mk(m,'INP')), true).pos;
+    const vn=probe(find(mk(m,'INN')), true).pos;
+    const vcc=probe(find(mk(m,'VCC')), true).pos;
+    const diff=(vp?vp.v:0)-(vn?vn.v:0);
+    const out=Math.min(Math.max(diff*100,0),(vcc?vcc.v:5)-1.5);
+    const net=find(mk(m,'OUT'));
+    (srcByNet[net]=srcByNet[net]||[]).push({pid:'M:'+m.id+':OUT', v:out});
+  });
   /* الشاحن: يمرر B+→5V و B-→GND (كيبل USB موصول) */
   state.modules.forEach(m=>{
     if(m.type!=='charger') return;
@@ -10742,10 +12509,45 @@ function simulate(){
     const net=find(mk(m,'M+'));
     (srcByNet[net]=srcByNet[net]||[]).push({pid:'M:'+m.id+':M+', v:m.run?5:0});
   });
+  /* حساسات خاصة */
+  state.modules.forEach(m=>{
+    if(m.type==='ir'){
+      const vcc=probe(find(mk(m,'VCC')), true).pos;
+      const d=Math.min(Math.max(m.distance==null?20:m.distance,0),100);
+      const active=!!vcc && d<30;
+      m.outActive=active;
+      (srcByNet[find(mk(m,'OUT'))]=srcByNet[find(mk(m,'OUT'))]||[]).push({pid:'M:'+m.id+':OUT', v:active?5:0});
+      return;
+    }
+    if(m.type==='pir'){
+      const vcc=probe(find(mk(m,'VCC')), true).pos;
+      const active=!!vcc && !!(m.activeUntil && Date.now()<m.activeUntil);
+      m.outActive=active;
+      (srcByNet[find(mk(m,'OUT'))]=srcByNet[find(mk(m,'OUT'))]||[]).push({pid:'M:'+m.id+':OUT', v:active?5:0});
+      return;
+    }
+    if(m.type==='tmp36'){
+      const vcc=probe(find(mk(m,'VCC')), true).pos;
+      const T=Math.min(Math.max(m.temp==null?25:m.temp,-20),120);
+      const active=!!vcc;
+      const v=+(0.5+T*0.01).toFixed(3);
+      m.outActive=active;
+      (srcByNet[find(mk(m,'OUT'))]=srcByNet[find(mk(m,'OUT'))]||[]).push({pid:'M:'+m.id+':OUT', v:active?v:0});
+      return;
+    }
+    if(m.type==='mpu'){
+      const vcc=probe(find(mk(m,'VCC')), true).pos;
+      const moved=Math.abs((m.roll||0))>25 || Math.abs((m.pitch||0))>25 || !!(m.activeUntil&&Date.now()<m.activeUntil);
+      m.outActive=!!vcc && moved;
+      (srcByNet[find(mk(m,'INT'))]=srcByNet[find(mk(m,'INT'))]||[]).push({pid:'M:'+m.id+':INT', v:m.outActive?5:0});
+      return;
+    }
+  });
   /* مخرجات الحساسات: تحتاج VCC موصولاً */
   state.modules.forEach(m=>{
     const def=MODULE_DEFS[m.type];
     if(!def.out) return;
+    if(['ir','pir','tmp36','mpu'].indexOf(m.type)>=0) return;  /* عولجت في كتلة الحساسات الخاصة */
     const vcc=probe(find(mk(m,'VCC')), true).pos;
     const active = !!vcc && moduleOutputActive(m);
     m.outActive=active;
@@ -11120,6 +12922,42 @@ function recompute(){
     else if(offLeds[0]) assistant('warn','💡 الليد <b>'+LED_COLORS[offLeds[0].color].name+'</b> ما إلو مسار مكتمل: تأكد من سلك المنفذ ← المقاومة ← الليد ← GND، وأن المنفذ HIGH بالشريط السفلي.');
   } else if(!sig){ state._lastOffSig=''; }
 
+  /* الجرس + RGB + 7 مقاطع: قراءة الجهود من نتائج المحاكاة (netVoltage) */
+  {
+    const nv=k=>{ try{ const v=netVoltage(k); return (typeof v==='number')?v:null; }catch(e){ return null; } };
+    state.modules.forEach(m=>{
+      if(m.type==='buzzer'){
+        const on=(nv('M:'+m.id+':PLUS')||0)>2.5;
+        m.outActive=on;
+        if(m.anim&&m.anim.waves) m.anim.waves.visible=on;
+        try{ buzzAudio(m, on); }catch(e){}
+      }
+    });
+    state.modules.forEach(m=>{
+      if(m.type!=='rgb') return;
+      const rv=(nv('M:'+m.id+':R')||0)/5, gv=(nv('M:'+m.id+':G')||0)/5, bv=(nv('M:'+m.id+':B')||0)/5;
+      const on=(rv+gv+bv)>0.05;
+      if(m.anim&&m.anim.rgbDome){
+        const c=new THREE.Color(Math.min(rv,1), Math.min(gv,1)*0.9, Math.min(bv,1));
+        m.anim.rgbDome.material.color.set(on?c:0x222222);
+        m.anim.rgbDome.material.emissive.set(c);
+        m.anim.rgbDome.material.emissiveIntensity=Math.min((rv+gv+bv)*0.9,1.2);
+      }
+    });
+    state.modules.forEach(m=>{
+      if(m.type!=='sevenseg') return;
+      const bit=k=>((nv('M:'+m.id+':'+k)||0)>2.5)?1:0;
+      const nib=bit('A')|(bit('B')<<1)|(bit('C')<<2)|(bit('D')<<3);
+    /* بتات: A=6 B=5 C=4 D=3 E=2 F=1 G=0 */
+    const SEG={'0':0b1111110,'1':0b0110000,'2':0b1101101,'3':0b1111001,'4':0b0110011,'5':0b1011011,'6':0b1011111,'7':0b1110000,'8':0b1111111,'9':0b1111011,'A':0b1110111,'b':0b0011111,'C':0b1001110,'d':0b0111101,'E':0b1001111,'F':0b1000111};
+    const pat=SEG[String(nib.toString(16).toUpperCase())]||0;
+    'ABCDEFG'.split('').forEach((sg,i)=>{
+      const seg=m.anim&&m.anim['seg'+sg];
+      if(seg&&seg.material) seg.material.emissiveIntensity=((pat>>(6-i))&1)?1.6:0.05;
+    });
+    });
+  }
+
   /* هاتف AMANUKI: إنذار عند ضغط الطوارئ عبر البلوتوث */
   const panicOn=state.modules.some(x=>x.type==='panic'&&x.pressed);
   const btOn=state.modules.some(x=>x.type==='hc05');
@@ -11461,7 +13299,30 @@ function renderSelCard(){
       body+='<div class="kit-note">'+T('شاشة AMANUKI — يعرض DANGER عند وصول رسالة من HC-05.','AMANUKI screen — shows DANGER when a message arrives via HC-05.')+'</div>';
     } else if(m.type==='driver'){
       body+='<div class="kit-note">'+T('IN = ','IN = ')+(m.run?T('HIGH ✓ المحرك يعمل','HIGH ✓ motor running'):T('LOW — المحرك متوقف','LOW — motor stopped'))+T('. خرج M+ للمحرك.','. M+ is the motor output.')+'</div>';
-    } else if(m.type==='kart'){
+    } else if(m.type==='vsrc'){
+      body+='<div class="val-row">'+T('الجهد:','Voltage:')+' <input type="range" id="vsR" min="0" max="24" step="0.5" value="'+(m.volts==null?12:m.volts)+'"> <span id="vsV">'+(m.volts==null?12:m.volts)+'V</span></div>';
+    } else if(m.type==='isrc'){
+      body+='<div class="val-row">'+T('التيار:','Current:')+' <input type="range" id="isR" min="0.01" max="1" step="0.01" value="'+(m.amps==null?0.05:m.amps)+'"> <span id="isV">'+(m.amps==null?0.05:m.amps)+'A</span></div><div class="kit-note">'+T('تحويل نورتون→ثيفننين: V=I×R المسار','Norton→Thevenin: V=I×R of the load path')+'</div>';
+    } else if(m.type==='pot'){
+      body+='<div class="val-row">'+T('الموضع:','Position:')+' <input type="range" id="potR" min="0" max="100" value="'+Math.round((m.k==null?0.5:m.k)*100)+'"> <span id="potV">'+Math.round((m.k==null?0.5:m.k)*100)+'%</span></div>';
+    } else if(m.type==='ldr'){
+      body+='<div class="val-row">'+T('الإضاءة:','Light:')+' <input type="range" id="ldrR" min="0" max="100" value="'+(m.light==null?50:m.light)+'"> <span id="ldrV">'+(m.light==null?50:m.light)+'%</span></div><div class="kit-note">R = '+((m._R||0)/1000).toFixed(1)+'kΩ</div>';
+    } else if(m.type==='therm'){
+      body+='<div class="val-row">'+T('الحرارة:','Temp:')+' <input type="range" id="thR" min="-20" max="120" value="'+(m.temp==null?25:m.temp)+'"> <span id="thV">'+(m.temp==null?25:m.temp)+'°C</span></div><div class="kit-note">R = '+((m._R||10000)/1000).toFixed(1)+'kΩ (NTC)</div>';
+    } else if(m.type==='ir'){
+      body+='<div class="val-row">'+T('بُعد العائق:','Obstacle dist:')+' <input type="range" id="irR" min="0" max="100" value="'+(m.distance==null?20:m.distance)+'"> <span id="irV">'+(m.distance==null?20:m.distance)+' سم</span></div><div class="kit-note">'+T('يكشف دون 30 سم','Detects under 30cm')+'</div>';
+    } else if(m.type==='pir'){
+      body+='<div class="acts"><button data-act="wave">🖐 '+T('مرّ يدك أمام الحساس','Wave your hand')+'</button></div>';
+    } else if(m.type==='mpu'){
+      body+='<div class="val-row">'+T('الميلان Roll:','Roll:')+' <input type="range" id="rollR" min="-90" max="90" value="'+(m.roll||0)+'"> <span id="rollV">'+(m.roll||0)+'°</span></div>';
+      body+='<div class="val-row">'+T('الانحدار Pitch:','Pitch:')+' <input type="range" id="pitchR" min="-90" max="90" value="'+(m.pitch||0)+'"> <span id="pitchV">'+(m.pitch||0)+'°</span></div><div class="kit-note">'+T('INT يرتفع عند ميلان أكبر من 25°','INT rises when tilt > 25°')+'</div>';
+    } else if(m.type==='tmp36'){
+      body+='<div class="val-row">'+T('الحرارة:','Temp:')+' <input type="range" id="t3R" min="-20" max="120" value="'+(m.temp==null?25:m.temp)+'"> <span id="t3V">'+(m.temp==null?25:m.temp)+'°C</span></div><div class="kit-note">V<sub>out</sub> = '+(0.5+((m.temp==null?25:m.temp))*0.01).toFixed(2)+'V</div>';
+    } else if(m.type==='npn'){
+      body+='<div class="kit-note">'+(m._on?'🔓 B>0.7V — المسار C-E <b>مفتوح</b>':'🔒 B≤0.7V — C-E مقطوع')+'</div>';
+    } else if(m.type==='opamp'){
+      body+='<div class="kit-note">V<sub>out</sub> = 100×(V<sub>INP</sub>−V<sub>INN</sub>) مقيدة [0، VCC−1.5V] — '+T('وصّل INP بحساس وINN بجسم تريد المقارنة','Wire INP to a sensor and INN to a reference')+'</div>';
+    } else if(m.type==='kart') {
       body+='<div class="acts" style="display:grid;grid-template-columns:repeat(3,1fr);width:100%;justify-items:center">'
         +'<span></span><button data-kart="f" style="font-size:18px">⬆</button><span></span>'
         +'<button data-kart="l" style="font-size:18px">⬅</button><button data-kart="s">⏹</button><button data-kart="r" style="font-size:18px">➡</button>'
@@ -11473,6 +13334,13 @@ function renderSelCard(){
       +body
       +'<div class="acts"><button data-act="del" class="danger">إزالة</button></div>';
     if(m.type==='ultra'){
+      const bind=(id,prop,fmt)=>{ const el=selCard.querySelector('#'+id); if(el) el.oninput=e=>{ m[prop]=+e.target.value; const lab=selCard.querySelector('#'+id.replace('R','V')); if(lab) lab.textContent=fmt(e.target.value); recompute(); }; };
+      bind('vsR','volts',v=>v+'V'); bind('isR','amps',v=>v+'A');
+      bind('ldrR','light',v=>v+'%'); bind('thR','temp',v=>v+'°C'); bind('irR','distance',v=>v+' سم');
+      bind('rollR','roll',v=>v+'°'); bind('pitchR','pitch',v=>v+'°'); bind('t3R','temp',v=>v+'°C');
+      const wv=selCard.querySelector('[data-act="wave"]');
+      if(wv) wv.onclick=e=>{ m.activeUntil=Date.now()+2500; recompute(); };
+      if(m.type==='pot'){ const pe=selCard.querySelector('#potR'); if(pe) pe.oninput=e=>{ m.k=(+e.target.value)/100; selCard.querySelector('#potV').textContent=e.target.value+'%'; if(m.anim&&m.anim.potArm) m.anim.potArm.rotation.y=(m.k-0.5)*2.4; recompute(); }; }
       selCard.querySelector('#ultraR').oninput=e=>{ m.distance=+e.target.value; selCard.querySelector('#ultraV').textContent=m.distance+' سم'; updateUltraStim(m); recompute(); };
     }
     if(m.type==='shake'){
@@ -12325,7 +14193,10 @@ document.getElementById('wireBtn').onclick=()=>{
 document.getElementById('addLedBtn').onclick=()=>addLed();
 document.getElementById('addResBtn').onclick=()=>addResistor();
 document.getElementById('addCapBtn').onclick=()=>addTwoPin('cap');
-[['mod-ultra','ultra'],['mod-shake','shake'],['mod-flame','flame'],['mod-gas','gas'],
+[['mod-vsrc','vsrc'],['mod-isrc','isrc'],['mod-pot','pot'],['mod-ldr','ldr'],['mod-therm','therm'],
+ ['mod-ir','ir'],['mod-pir','pir'],['mod-mpu','mpu'],['mod-opamp','opamp'],['mod-buzzer','buzzer'],
+ ['mod-rgb','rgb'],['mod-npn','npn'],['mod-tmp36','tmp36'],['mod-sevenseg','sevenseg'],
+['mod-ultra','ultra'],['mod-shake','shake'],['mod-flame','flame'],['mod-gas','gas'],
  ['mod-relay','relay'],['mod-dc','dc'],['mod-servo','servo'],['mod-step','stepper'],['mod-kart','kart'],
  ['mod-battery','battery'],['mod-charger','charger'],['mod-hc05','hc05'],
  ['mod-reed','reed'],['mod-panic','panic'],['mod-phone','phone'],['mod-driver','driver']]
@@ -13467,6 +15338,9 @@ const STATIC_EN={
 const TOOL_EN={move:'Move', edit:'Edit', view:'Table', delete:'Delete', wire:'Wire'};
 const TOOL_ICON={move:'✥ ', edit:'✎ ', view:'▨ ', delete:'✕ ', wire:'◠ '};
 const KIT_EN={
+  'mod-vsrc':'⚡ Volt source','mod-isrc':'🔌 Current src','mod-pot':'🎚 Potentiometer','mod-ldr':'☀️ LDR light','mod-therm':'🌡 NTC temp',
+  'mod-ir':'🚧 IR sensor','mod-pir':'🖐 PIR motion','mod-mpu':'🌀 MPU-6050','mod-opamp':'🔺 LM358','mod-buzzer':'🔊 Buzzer',
+  'mod-rgb':'🌈 RGB LED','mod-npn':'🧲 NPN','mod-tmp36':'🌡 TMP36','mod-sevenseg':'🔢 7-seg',
   'mod-ultra':'📏 Distance', 'mod-shake':'🫨 Vibration', 'mod-flame':'🔥 Flame', 'mod-gas':'💨 Gas',
   'mod-relay':'🔌 Relay', 'mod-dc':'⚙️ DC motor', 'mod-servo':'🦾 Servo', 'mod-step':'🔢 Stepper',
   'mod-kart':'🏎️ Kart!', 'mod-battery':'🔋 Battery', 'mod-charger':'🔌 Power bank', 'mod-hc05':'📶 Bluetooth',
@@ -13475,6 +15349,9 @@ const KIT_EN={
   'addBtnBtn':'⏴⏵ Push button', 'addSwBtn':'⏻ Switch'
 };
 const KIT_AR={
+  'mod-vsrc':'⚡ منبع جهد','mod-isrc':'🔌 منبع تيار','mod-pot':'🎚 بوتانشيومتر','mod-ldr':'☀️ حساس ضوء','mod-therm':'🌡 حساس حرارة',
+  'mod-ir':'🚧 حساس IR','mod-pir':'🖐 حساس حركة','mod-mpu':'🌀 جيرو MPU','mod-opamp':'🔺 LM358','mod-buzzer':'🔊 جرس',
+  'mod-rgb':'🌈 ليد RGB','mod-npn':'🧲 ترانزستور','mod-tmp36':'🌡 TMP36','mod-sevenseg':'🔢 7 مقاطع',
   'mod-ultra':'📏 حساس مسافة', 'mod-shake':'🫨 اهتزاز', 'mod-flame':'🔥 لهب', 'mod-gas':'💨 غاز',
   'mod-relay':'🔌 مرحّل', 'mod-dc':'⚙️ محرك DC', 'mod-servo':'🦾 سيرفو', 'mod-step':'🔢 ستيبّر',
   'mod-kart':'🏎️ كارت!', 'mod-battery':'🔋 بطارية', 'mod-charger':'🔌 شاحن', 'mod-hc05':'📶 بلوتوث',
@@ -13532,6 +15409,29 @@ function applyLang(){
   if(bRem) bRem.onclick=()=>{ if(!bb2Group){ assistant('warn','لا يوجد بريدبورد إضافي.'); return; } removeExtraBoard(); assistant('','أُزيل البريدبورد الإضافي وأسلاكه.'); };
   const cb=document.getElementById('curBtn');
   if(cb && !cb.dataset.wired){ cb.dataset.wired='1'; cb.onclick=openCurriculum; }
+
+function openSimMatrix(){
+  const M=(typeof SIM_MATRIX!=='undefined')?SIM_MATRIX:[];
+  const modal=document.createElement('div');
+  modal.id='simMatModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(4,14,20,.92);z-index:99991;display:flex;align-items:center;justify-content:center;padding:14px';
+  const ar=UILANG!=='en';
+  modal.innerHTML='<div style="background:#f6f1e4;color:#182a30;border-radius:16px;max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:20px;direction:'+(ar?'rtl':'ltr')+';text-align:'+(ar?'right':'left')+'">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">📊 '+T('مصفوفة المحاكاة — كيف يُحاكي المختبر كل عنصر','Simulation Matrix — how the lab models every part')+'</h3>'
+   +'<button id="smX" style="border:none;background:#182a30;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer">✕</button></div>'
+   +'<div style="margin-top:12px;display:grid;gap:10px">'
+   +M.map(e=>'<details style="background:#fff;border:1px solid #d9d2c0;border-radius:12px;padding:10px 12px">'
+     +'<summary style="font-weight:800;cursor:pointer">'+(e.symbol?e.symbol+' ':'')+(e.name?(e.name[ar?'ar':'en']||e.name.ar):e.id)+' <span style="font-weight:400;color:#5c6668;font-size:12px">· '+(e.pins||[]).join(' ')+'</span></summary>'
+     +'<div style="margin-top:8px"><code style="background:#182a30;color:#8be9c3;padding:4px 8px;border-radius:6px;font-size:12px;direction:ltr;display:inline-block">'+(e.model||'')+'</code></div>'
+     +'<p style="font-size:14px;line-height:1.8;margin:8px 0 0">'+(e.sim||'')+'</p></details>').join('')
+   +'</div></div>';
+  document.body.appendChild(modal);
+  modal.querySelector('#smX').onclick=()=>modal.remove();
+  modal.onclick=e=>{ if(e.target===modal) modal.remove(); };
+}
+
+  const smb=document.getElementById('simMatBtn');
+  if(smb && !smb.dataset.wired){ smb.dataset.wired='1'; smb.onclick=openSimMatrix; }
   const vb=document.getElementById('videoBtn');
   if(vb && !vb.dataset.wired){ vb.dataset.wired='1'; vb.onclick=startVideo; }
   applyTips();
