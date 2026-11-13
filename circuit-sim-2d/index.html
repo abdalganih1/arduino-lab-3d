@@ -19,6 +19,7 @@ button,select,input{font:inherit;color:inherit}
 .pill{position:absolute;display:flex;align-items:center;gap:4px;background:var(--pill);border:1px solid var(--line);border-radius:14px;padding:5px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .ib{min-width:40px;height:40px;border:0;background:transparent;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 8px;font-size:14px;touch-action:none}
 .ib:hover{background:#2a313b}
+.ib:disabled{opacity:.35;cursor:default;background:transparent}
 .ib.on{background:var(--accent);color:#1a1300}
 .ib.play{background:var(--pos);color:#04220f;min-width:52px;font-size:18px}
 .ib.play.paused{background:#2a313b;color:var(--text)}
@@ -39,15 +40,24 @@ button,select,input{font:inherit;color:inherit}
 #ctx .ib{min-width:36px;height:36px;font-weight:700;font-size:13px}
 #ctx .ib.pv{color:#3ddc84}#ctx .ib.pi{color:#ffd84a}#ctx .ib.pr{color:#c792ea}
 #ctx .ib.pv.on{background:#3ddc84;color:#04220f}#ctx .ib.pi.on{background:#ffd84a;color:#2a2100}#ctx .ib.pr.on{background:#c792ea;color:#1d0b2b}
+#ctx .knob{width:44px;height:44px;cursor:grab;touch-action:none;flex:none}
+#ctx .valbox{display:inline-flex;align-items:center;background:#0f1318;border:1px solid var(--line);border-radius:8px;height:34px;direction:ltr;padding-right:8px}
+#ctx .valbox input{border:0;background:transparent;width:62px;text-align:right;padding:0 2px 0 8px}
+#ctx .valbox select{border:0;background:transparent;height:32px;font:13px ui-monospace,monospace;color:#f5b83d;padding:0 2px}
+#ctx .valbox .unit{font:13px ui-monospace,monospace;color:#8e98a6}
+#ctx .speedsel{display:inline-flex;background:#0f1318;border:1px solid var(--line);border-radius:8px;padding:2px}
+#ctx .sp{border:0;background:transparent;font-size:11px;padding:0 7px;height:28px;border-radius:6px;cursor:pointer;color:#8e98a6}
+#ctx .sp.on{background:#2a313b;color:#e8ecf1}
 #ctx .nm{font:12px ui-monospace,monospace;color:var(--muted);padding:0 6px;direction:ltr}
-#scopeWrap{display:none;flex-direction:column;height:250px;border-top:1px solid var(--line);background:#0d1116;flex:none}
+#scopeWrap{display:none;flex-direction:column;height:280px;border-top:1px solid var(--line);background:#0d1116;flex:none}
 #scopeBox{position:relative;flex:1;min-height:0}
 #scope{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 #chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:7px 10px 2px}
-#chips .hint{font-size:11px;color:#5d6672;margin-inline-start:auto}
+#chips .hint{font:12px ui-monospace,monospace;color:#8e98a6;margin-inline-start:auto;direction:ltr}
 .sbtns{display:flex;gap:4px}
 .sb{height:26px;min-width:28px;border:1px solid var(--line);background:#161b22;border-radius:7px;cursor:pointer;font-size:13px;padding:0 8px}
 .sb:hover{border-color:#3b4452}
+.shelp{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;color:#8e98a6;font-size:12px;cursor:help}
 .sb.live{display:none;align-items:center;color:#ff5a5f;font-size:12px}
 .chip{display:flex;align-items:center;gap:7px;font:12px ui-monospace,monospace;background:#161b22;border:1px solid var(--line);border-radius:8px;padding:3px 4px 3px 9px;direction:ltr}
 .chip b{min-width:64px;text-align:right}
@@ -57,10 +67,10 @@ button,select,input{font:inherit;color:inherit}
 @media (max-width:640px){
   .ib{min-width:36px;height:38px;padding:0 6px}
   #bar{bottom:8px}
-  #scopeWrap{height:220px} #chips .hint{display:none} .sbtns{margin-inline-start:auto}
+  #scopeWrap{height:230px} .sbtns{margin-inline-start:0}
   #topbar{right:6px;top:6px}
-  #clock{top:auto;bottom:66px;left:10px}
-  #ctx{bottom:62px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;width:max-content}
+  #clock{top:66px;left:10px}
+  #ctx{bottom:62px;flex-wrap:wrap;justify-content:center;width:calc(100% - 12px);row-gap:4px}
   #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px}
 }
 </style>
@@ -81,7 +91,9 @@ button,select,input{font:inherit;color:inherit}
     </select>
     <span class="sep"></span>
     <select id="speed" title="سرعة الزمن"></select>
-    <button class="ib" id="bReset" title="إعادة الزمن للصفر">⟲</button>
+    <button class="ib" id="bUndo" title="تراجع (Ctrl+Z)">↶</button><button class="ib" id="bRedo" title="إعادة (Ctrl+Y)">↷</button>
+    <span class="sep"></span>
+    <button class="ib" id="bReset" title="إعادة الزمن للصفر">⏮</button>
     <button class="ib" id="bFit" title="ملاءمة اللوحة">⤢</button>
   </div>
   <div class="pill" id="bar"></div>
@@ -430,11 +442,11 @@ function draw(){
     if (p.ti===undefined){
       const k=p.c.id, n=per.get(k)||0; per.set(k,n+1);
       const [dx]=DIRS[p.c.rot];
-      const x=p.c.x*GRID + (dx!==0 ? (n-0.5)*24 : -28), y=p.c.y*GRID + (dx!==0 ? 26 : (n-0.5)*22);
-      probeTag(x,y,p.kind==='I'?'A':p.kind==='R'?'Ω':'V',p.col);
+      const x=p.c.x*GRID + (dx!==0 ? (n-1)*12 : -22), y=p.c.y*GRID + (dx!==0 ? 22 : (n-1)*12);
+      ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(x,y,4.5,0,Math.PI*2); ctx.fill();   // small colour dot = this part is on the scope
     } else {
       const t=tpos(p.c,p.ti); ctx.strokeStyle=p.col; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(t[0]*GRID,t[1]*GRID,8,0,Math.PI*2); ctx.stroke();
-      probeTag(t[0]*GRID+16,t[1]*GRID-16,'V',p.col);
+
     }
   }
   if (drag && drag.type==='move' && drag.weld) for (const q of drag.weld){
@@ -483,7 +495,7 @@ function hitComp(w){
   return null;
 }
 function hitLink(w){
-  for (let i=links.length-1;i>=0;i--){ const l=links[i], a=tpos(l.c1,l.t1), b=tpos(l.c2,l.t2); if (distSeg(w.x,w.y,a[0]*GRID,a[1]*GRID,b[0]*GRID,b[1]*GRID)<8) return l; }
+  for (let i=links.length-1;i>=0;i--){ const l=links[i], a=tpos(l.c1,l.t1), b=tpos(l.c2,l.t2); if (distSeg(w.x,w.y,a[0]*GRID,a[1]*GRID,b[0]*GRID,b[1]*GRID)<(touchMode?16:8)/Math.min(view.s,1.4)) return l; }
   return null;
 }
 
@@ -558,6 +570,8 @@ function deleteSel(){
 }
 window.addEventListener('keydown',e=>{
   if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if ((e.ctrlKey||e.metaKey) && (e.key==='z'||e.key==='Z')){ e.preventDefault(); e.shiftKey?redoFn():undo(); return; }
+  if ((e.ctrlKey||e.metaKey) && (e.key==='y'||e.key==='Y')){ e.preventDefault(); redoFn(); return; }
   if (e.key==='r'||e.key==='R'||e.key==='ق') rotateSel();
   else if (e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); deleteSel(); }
   else if (e.key===' '){ e.preventDefault(); togglePlay(); }
@@ -596,6 +610,73 @@ const bPlay=document.getElementById('bPlay');
 function togglePlay(){ running=!running; bPlay.textContent=running?'❚❚':'▶'; bPlay.classList.toggle('paused',!running); }
 bPlay.onclick=togglePlay;
 
+// ======================= Value editing (number + fixed prefix, rotary knob) =======================
+const PREFIXES=[[1e-12,'p'],[1e-9,'n'],[1e-6,'µ'],[1e-3,'m'],[1,''],[1e3,'k'],[1e6,'M']];
+let knobSpeed=1;   // 0 fine, 1 normal, 2 fast
+function splitSI(v){
+  const a=Math.abs(v); let k=1;
+  for (const [mul] of PREFIXES) if (a>=mul*0.9995) k=mul;
+  return {k, m:String(parseFloat((v/k).toPrecision(4)))};
+}
+function niceVal(v){ const e=Math.pow(10,Math.floor(Math.log10(v))-2); return Math.round(v/e)*e; }   // 3 significant digits
+const VLIM={R:[0.1,100e6],C:[1e-12,10],L:[1e-9,100],V:[1e-3,1000]};
+function setValue(c,v){
+  const [lo,hi]=VLIM[c.type]; v=Math.max(lo,Math.min(hi,v)); c.value=niceVal(v); save();
+  const sp=splitSI(c.value), vi=document.getElementById('valIn'), pi=document.getElementById('preIn');
+  if (vi && document.activeElement!==vi) vi.value=sp.m; if (pi) pi.value=String(sp.k);
+  drawKnob(c);
+}
+function drawKnob(c){
+  const kc=document.getElementById('knob'); if (!kc) return;
+  const g=kc.getContext('2d'), S=88, cx=44, cy=44; g.clearRect(0,0,S,S);
+  const [lo,hi]=VLIM[c.type], f=(Math.log(c.value)-Math.log(lo))/(Math.log(hi)-Math.log(lo));
+  const a0=Math.PI*0.75, a1=Math.PI*2.25, a=a0+(a1-a0)*Math.max(0,Math.min(1,f));
+  g.lineCap='round';
+  g.strokeStyle='#2b333e'; g.lineWidth=6; g.beginPath(); g.arc(cx,cy,34,a0,a1); g.stroke();
+  g.strokeStyle='#f5b83d'; g.beginPath(); g.arc(cx,cy,34,a0,a); g.stroke();
+  const grd=g.createRadialGradient(cx-8,cy-10,4,cx,cy,26); grd.addColorStop(0,'#3a434f'); grd.addColorStop(1,'#1b2129');
+  g.fillStyle=grd; g.beginPath(); g.arc(cx,cy,25,0,Math.PI*2); g.fill();
+  // knurl marks rotate with the accumulated angle so the knob visibly turns
+  g.strokeStyle='#4a5462'; g.lineWidth=2;
+  for (let i=0;i<12;i++){ const t=knobAngle+i*Math.PI/6; g.beginPath(); g.moveTo(cx+Math.cos(t)*19,cy+Math.sin(t)*19); g.lineTo(cx+Math.cos(t)*23,cy+Math.sin(t)*23); g.stroke(); }
+  g.strokeStyle='#e8ecf1'; g.lineWidth=3; g.beginPath(); g.moveTo(cx+Math.cos(a)*8,cy+Math.sin(a)*8); g.lineTo(cx+Math.cos(a)*20,cy+Math.sin(a)*20); g.stroke();
+}
+let knobAngle=0;
+function setupValueEditor(c){
+  const vi=document.getElementById('valIn'), pi=document.getElementById('preIn'), kc=document.getElementById('knob');
+  const apply=()=>{ const m=parseFloat(vi.value.replace(',','.')); if (isFinite(m)&&m>0) setValue(c, m*(+pi.value)); else vi.value=splitSI(c.value).m; };
+  // only digits and one dot can be typed: the prefix (k, µ…) can't be deleted by mistake
+  vi.addEventListener('input',()=>{ const clean=vi.value.replace(',','.').replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1'); if (clean!==vi.value) vi.value=clean; });
+  vi.addEventListener('change',apply);
+  vi.addEventListener('keydown',e=>{
+    if (e.key==='Enter'){ apply(); vi.blur(); }
+    if (e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); const st=e.shiftKey?10:e.altKey?0.1:1, m=parseFloat(vi.value)||0, nm=Math.max(0,m+(e.key==='ArrowUp'?st:-st));
+      vi.value=String(parseFloat(nm.toPrecision(6))); apply(); }
+  });
+  pi.addEventListener('change',apply);
+  document.querySelectorAll('#ctx .sp').forEach(b=>b.onclick=()=>{ knobSpeed=+b.dataset.s; document.querySelectorAll('#ctx .sp').forEach(x=>x.classList.toggle('on',x===b)); });
+  // rotary knob: drag in circles around it. The rate depends on the circle size:
+  // small tight circles change the value fast, large circles give fine control.
+  const K=[0.3,1,3];
+  let last=null;
+  kc.addEventListener('pointerdown',e=>{ e.preventDefault(); kc.setPointerCapture(e.pointerId); const r=kc.getBoundingClientRect(); last={cx:r.left+r.width/2, cy:r.top+r.height/2, a:null}; });
+  kc.addEventListener('pointermove',e=>{
+    if (!last) return;
+    const dx=e.clientX-last.cx, dy=e.clientY-last.cy, rad=Math.hypot(dx,dy); if (rad<6) return;
+    const a=Math.atan2(dy,dx);
+    if (last.a!==null){
+      let d=a-last.a; if (d>Math.PI) d-=2*Math.PI; if (d<-Math.PI) d+=2*Math.PI;
+      // ~×10 per small (r≈15px) turn, ~×1.25 per large (r≈150px) turn at normal speed
+      const sens=K[knobSpeed]*5.5/Math.max(10,Math.min(300,rad));
+      knobAngle+=d; setValue(c, c.value*Math.exp(d*sens));
+    }
+    last.a=a;
+  });
+  const end=()=>{ last=null; }; kc.addEventListener('pointerup',end); kc.addEventListener('pointercancel',end);
+  kc.addEventListener('wheel',e=>{ e.preventDefault(); knobAngle-=e.deltaY*0.004; setValue(c, c.value*Math.exp(-e.deltaY*0.0015*[0.25,1,3][knobSpeed])); },{passive:false});
+  drawKnob(c);
+}
+
 // ======================= Context toolbar (selected item) =======================
 const ctxEl=document.getElementById('ctx');
 function select(s){ selected=s; renderCtx(); }
@@ -617,7 +698,10 @@ function renderCtx(){
     const c=selected.c, T=TYPES[c.type];
     h+=`<span class="nm">${c.label}</span>`;
     if (c.type!=='G'){
-      h+=`<input id="valIn" value="${fmt(c.value,T.unit).replace(' ','')}" title="القيمة">`;
+      const sp=splitSI(c.value);
+      h+=`<canvas id="knob" class="knob" width="88" height="88" title="دوّر لتغيير القيمة: دائرة صغيرة = سريع، دائرة كبيرة = دقيق"></canvas>`;
+      h+=`<span class="valbox"><input id="valIn" inputmode="decimal" value="${sp.m}" title="الرقم"><select id="preIn" title="البادئة">${PREFIXES.map(([k,s])=>`<option value="${k}"${k===sp.k?' selected':''}>${s||'·'}</option>`).join('')}</select><span class="unit">${T.unit}</span></span>`;
+      h+=`<span class="speedsel" title="سرعة التغيير">${['دقيق','عادي','سريع'].map((n,i)=>`<button class="sp ${knobSpeed===i?'on':''}" data-s="${i}">${n}</button>`).join('')}</span>`;
       if (c.type==='V'){
         h+=`<select id="modeIn"><option value="dc"${c.mode==='dc'?' selected':''}>DC</option><option value="ac"${c.mode==='ac'?' selected':''}>AC ~</option><option value="sq"${c.mode==='sq'?' selected':''}>⊓ مربعة</option></select>`;
         if (c.mode!=='dc') h+=`<input id="freqIn" value="${fmt(c.freq,'Hz').replace(' ','')}" title="التردد">`;
@@ -640,7 +724,7 @@ function renderCtx(){
   const q=id=>document.getElementById(id);
   if (q('cRot')) q('cRot').onclick=rotateSel;
   if (q('cDel')) q('cDel').onclick=deleteSel;
-  if (q('valIn')) q('valIn').onchange=()=>{ const v=parseSI(q('valIn').value); if (isFinite(v)&&(v>0||c.type==='V')){ c.value=v; save(); } q('valIn').value=fmt(c.value,TYPES[c.type].unit).replace(' ',''); };
+  if (q('valIn')) setupValueEditor(c);
   if (q('modeIn')) q('modeIn').onchange=()=>{ c.mode=q('modeIn').value; save(); renderCtx(); };
   if (q('freqIn')) q('freqIn').onchange=()=>{ const v=parseSI(q('freqIn').value); if (isFinite(v)&&v>0){ c.freq=v; save(); } q('freqIn').value=fmt(c.freq,'Hz').replace(' ',''); };
   placeCtx();
@@ -679,7 +763,7 @@ const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${p.ti===0?'a':'b'})` : `${p.k
 function renderChips(){
   scopeWrap.style.display = probes.length ? 'flex' : 'none';
   chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
-    + `<span class="hint">اسحب يمين/يسار للرجوع بالزمن · العجلة للتكبير</span><span class="sbtns"><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button></span>`;
+    + `<span class="hint" id="sT"></span><span class="sbtns"><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
   chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
   scopeBtn('sZi',()=>{ scopeZoom=Math.max(0.05,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
   scopeBtn('sZo',()=>{ scopeZoom=Math.min(40,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
@@ -760,7 +844,7 @@ function drawScope(){
   units.forEach((u,i)=>{
     const ax=axes[u], tr=probes.filter(p=>p.kind===u), col=tr.length===1?tr[0].col:'#c9d1db';
     const left=side[i]==='L', xa = left ? X0-6-AXW*(li++) : X1+6+AXW*(ri++);
-    g.fillStyle=col; g.textBaseline='middle'; g.textAlign=left?'right':'left'; g.font='11px ui-monospace,monospace';
+    g.fillStyle=col; g.textBaseline='middle'; g.textAlign=left?'right':'left'; g.font='12px ui-monospace,monospace';
     for (let k=0;k<=DIVS;k++){ const v=ax.lo+k*ax.step, y=yv(u,v); if (k===DIVS && y<Y0+1) { g.fillText(ax.f(v), xa, y+5); } else g.fillText(ax.f(v), xa, y); }
     // unit title, on its own at the outer edge
     g.save(); g.translate(left? xa-AXW+12 : xa+AXW-12, Y0+PH/2); g.rotate(-Math.PI/2);
@@ -772,35 +856,31 @@ function drawScope(){
   g.save(); g.beginPath(); g.rect(X0,Y0,PW,PH); g.clip();
   probes.forEach(p=>{
     const buf=p.buf; if (buf.length<2) return;
-    g.strokeStyle=p.col; g.lineWidth=2; g.lineJoin='round'; g.shadowColor=p.col; g.shadowBlur=4;
+    g.strokeStyle=p.col; g.lineWidth=2.2; g.lineJoin='round';
     g.beginPath(); let pen=false;
     let j0=lb(buf,tL)-1; if (j0<0) j0=0;
     for (let j=j0;j<buf.length;j++){ const q=buf[j]; if (q.t>tR) { if (pen){ g.lineTo(xt(q.t),yv(p.kind,q.v)); } break; } if (!isFinite(q.v)){ pen=false; continue; } const X=xt(q.t), Y=yv(p.kind,q.v); pen?g.lineTo(X,Y):g.moveTo(X,Y); pen=true; }
     g.stroke(); g.shadowBlur=0;
   });
   g.restore();
-  // live values
-  probes.forEach((p,i)=>{ const el=document.getElementById('pv'+i); const q=p.buf[Math.max(0,lb(p.buf,tR)-(scopeRight===null?1:0))] || p.buf[p.buf.length-1]; if (el) el.textContent=q?fmt(q.v,UNIT[p.kind]):''; });
-  // reading cursor
-  if (scopeCursor!==null && scopeCursor>=X0 && scopeCursor<=X1){
-    const t=tL+(scopeCursor-X0)/PW*span, x=Math.round(scopeCursor)+0.5;
-    g.strokeStyle='#e8ecf1aa'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.setLineDash([]);
-    const rows=[];
-    probes.forEach(p=>{
-      const b=p.buf; if (b.length<2) return;
-      const j=lb(b,t); if (j<=0 || j>=b.length) return;
-      const a=b[j-1], c=b[j], f=(t-a.t)/((c.t-a.t)||1), v=a.v+(c.v-a.v)*f;
-      if (!isFinite(v)) return;
-      const Y=yv(p.kind,v); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill();
-      rows.push([p.col, pname(p)+' = '+fmt(v,UNIT[p.kind])]);
-    });
-    if (rows.length){
-      g.font='12px ui-monospace,monospace'; const tw=Math.max(...rows.map(r=>g.measureText(r[1]).width), g.measureText('t = '+fmt(t,'s')).width)+22;
-      const bh=18*(rows.length+1)+8; let bx=x+10; if (bx+tw>X1) bx=x-10-tw; const by=Y0+6;
-      g.fillStyle='rgba(16,20,26,.94)'; g.strokeStyle='#2b333e'; g.beginPath(); g.roundRect(bx,by,tw,bh,8); g.fill(); g.stroke();
-      g.textAlign='left'; g.textBaseline='middle'; g.fillStyle='#8e98a6'; g.fillText('t = '+fmt(t,'s'), bx+10, by+13);
-      rows.forEach((r,k)=>{ g.fillStyle=r[0]; g.fillText(r[1], bx+10, by+13+18*(k+1)); });
-    }
+  // values: live, or at the reading cursor (shown in the legend above, never floating over the traces)
+  let tc=null;
+  if (scopeCursor!==null && scopeCursor>=X0 && scopeCursor<=X1) tc=tL+(scopeCursor-X0)/PW*span;
+  const at=(b,t)=>{ const j=lb(b,t); if (j<=0||j>=b.length) return j>=b.length&&b.length?b[b.length-1].v:NaN; const a=b[j-1], c=b[j], f=(t-a.t)/((c.t-a.t)||1); return a.v+(c.v-a.v)*f; };
+  probes.forEach((p,i)=>{
+    const el=document.getElementById('pv'+i); if (!el) return;
+    const v = p.buf.length ? at(p.buf, tc ?? tR) : NaN;
+    el.textContent = isFinite(v) ? fmt(v,UNIT[p.kind]) : '—';
+    if (tc!==null && isFinite(v)){ const Y=yv(p.kind,v), x=Math.round(scopeCursor)+0.5; g.fillStyle='#0b0e12'; g.beginPath(); g.arc(x,Y,5.5,0,Math.PI*2); g.fill(); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill(); }
+  });
+  const tEl=document.getElementById('sT'); if (tEl) tEl.textContent = 't = '+fmt(tc ?? tR,'s');
+  if (tc!==null){
+    const x=Math.round(scopeCursor)+0.5;
+    g.strokeStyle='#e8ecf180'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.setLineDash([]);
+    // time tag sits on the time axis, below the plot
+    g.font='11px ui-monospace,monospace'; const lab=fmt(tc,'s'), tw=g.measureText(lab).width+12;
+    g.fillStyle='#e8ecf1'; g.beginPath(); g.roundRect(x-tw/2, Y1+3, tw, 17, 4); g.fill();
+    g.fillStyle='#0b0e12'; g.textAlign='center'; g.textBaseline='top'; g.fillText(lab, x, Y1+6);
   }
 }
 function lb(b,t){ let lo=0, hi=b.length; while (lo<hi){ const m=(lo+hi)>>1; if (b[m].t<t) lo=m+1; else hi=m; } return lo; }
@@ -838,6 +918,7 @@ function setSpeed(s){ speed=s; speedSel.value=String(s); }
 speedSel.onchange=()=>setSpeed(+speedSel.value);
 document.getElementById('bReset').onclick=resetSim;
 document.getElementById('bFit').onclick=fitView;
+document.getElementById('bUndo').onclick=undo; document.getElementById('bRedo').onclick=redoFn;
 
 // ======================= Ready-made models =======================
 const EX={
@@ -874,25 +955,44 @@ document.getElementById('examples').onchange=e=>{ if (e.target.value){ loadExamp
 
 // ======================= Persistence =======================
 let saveT=null;
+function snapshot(){
+  return JSON.stringify({
+    comps:comps.map(({id,type,x,y,rot,value,mode,freq,label})=>({id,type,x,y,rot,value,mode,freq,label})),
+    links:links.map(l=>[l.c1.id,l.t1,l.c2.id,l.t2]),
+    probes:probes.map(p=>[p.kind,p.c.id,p.ti??null,p.col]), speed, counters});
+}
+const hist=[], redo=[];
 function save(){
   clearTimeout(saveT);
-  saveT=setTimeout(()=>{ try{
-    localStorage.setItem('circuit2d_v2', JSON.stringify({
-      comps:comps.map(({id,type,x,y,rot,value,mode,freq,label})=>({id,type,x,y,rot,value,mode,freq,label})),
-      links:links.map(l=>[l.c1.id,l.t1,l.c2.id,l.t2]),
-      probes:probes.map(p=>[p.kind,p.c.id,p.ti??null,p.col]), speed, counters}));
-  }catch(_){} },300);
+  saveT=setTimeout(()=>{
+    const snap=snapshot();
+    if (hist[hist.length-1]!==snap){ hist.push(snap); if (hist.length>150) hist.shift(); redo.length=0; }
+    updUndo();
+    try{ localStorage.setItem('circuit2d_v2', snap); }catch(_){}
+  },250);
+}
+function restore(d){
+  comps=d.comps.map(c=>({...c,st:newState(),phase:0})); const byId=new Map(comps.map(c=>[c.id,c]));
+  links=d.links.filter(l=>byId.has(l[0])&&byId.has(l[2])).map(l=>({id:0,c1:byId.get(l[0]),t1:l[1],c2:byId.get(l[2]),t2:l[3],phase:0}));
+  probes=(d.probes||[]).filter(p=>byId.has(p[1])).map(p=>({kind:p[0],c:byId.get(p[1]),ti:p[2]??undefined,col:p[3],buf:[]}));
+  counters=d.counters||{}; nextId=1+Math.max(0,...comps.map(c=>c.id)); if (d.speed) setSpeed(d.speed);
+  dirty=true;
 }
 function load(){
-  try{
-    const d=JSON.parse(localStorage.getItem('circuit2d_v2')||'null'); if (!d) return false;
-    comps=d.comps.map(c=>({...c,st:newState(),phase:0})); const byId=new Map(comps.map(c=>[c.id,c]));
-    links=d.links.filter(l=>byId.has(l[0])&&byId.has(l[2])).map(l=>({id:0,c1:byId.get(l[0]),t1:l[1],c2:byId.get(l[2]),t2:l[3],phase:0}));
-    probes=(d.probes||[]).filter(p=>byId.has(p[1])).map(p=>({kind:p[0],c:byId.get(p[1]),ti:p[2]??undefined,col:p[3],buf:[]}));
-    counters=d.counters||{}; nextId=1+Math.max(0,...comps.map(c=>c.id)); if (d.speed) setSpeed(d.speed);
-    dirty=true; return true;
-  }catch(_){ comps=[]; links=[]; probes=[]; return false; }
+  try{ const raw=localStorage.getItem('circuit2d_v2'); if (!raw) return false; restore(JSON.parse(raw)); hist.push(raw); return true; }
+  catch(_){ comps=[]; links=[]; probes=[]; return false; }
 }
+function undo(){
+  clearTimeout(saveT); const cur=snapshot(); if (hist[hist.length-1]!==cur) hist.push(cur);
+  if (hist.length<2) return;
+  redo.push(hist.pop()); applySnap(hist[hist.length-1]);
+}
+function redoFn(){ if (!redo.length) return; const s=redo.pop(); hist.push(s); applySnap(s); }
+function applySnap(sn){
+  armed=null; select(null); restore(JSON.parse(sn)); build(); resetSim(); renderChips(); updUndo();
+  try{ localStorage.setItem('circuit2d_v2', sn); }catch(_){}
+}
+function updUndo(){ const u=document.getElementById('bUndo'), r=document.getElementById('bRedo'); if (u) u.disabled=hist.length<2; if (r) r.disabled=!redo.length; }
 
 // ======================= Main loop =======================
 let lastT=performance.now(), uiT=0, lastWarn='';
@@ -924,7 +1024,7 @@ function frame(ts){
   }
   requestAnimationFrame(frame);
 }
-resize(); setSpeed(speed); load(); build(); renderChips(); fitView();
+resize(); setSpeed(speed); load(); if (!hist.length) hist.push(snapshot()); updUndo(); build(); renderChips(); fitView();
 requestAnimationFrame(frame);
 </script>
 </body>
