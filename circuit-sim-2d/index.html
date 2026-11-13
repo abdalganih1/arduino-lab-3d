@@ -33,7 +33,7 @@ button,select,input{font:inherit;color:inherit}
 #warn{position:absolute;top:62px;left:50%;transform:translateX(-50%);font-size:13px;pointer-events:none}
 #warn div{background:rgba(255,90,95,.16);border:1px solid var(--neg);color:#ffd0d1;padding:4px 12px;border-radius:9px;margin-bottom:5px;white-space:nowrap}
 #warn div.info{background:rgba(245,184,61,.12);border-color:var(--accent);color:#ffe7b3}
-#ctx{display:none;transform:translate(-50%,-100%);z-index:5}
+#ctx{display:none;bottom:74px;left:50%;transform:translateX(-50%);z-index:5;max-width:calc(100% - 16px);flex-wrap:wrap;justify-content:center}
 #ctx input{width:78px;height:34px;background:#0f1318;border:1px solid var(--line);border-radius:8px;padding:0 8px;direction:ltr;text-align:center;font:13px ui-monospace,monospace;user-select:text}
 #ctx select{height:34px;background:#0f1318;border:1px solid var(--line);border-radius:8px;font-size:12px}
 #ctx .ib{min-width:36px;height:36px;font-weight:700;font-size:13px}
@@ -53,6 +53,8 @@ button,select,input{font:inherit;color:inherit}
   #scopeWrap{height:140px}
   #topbar{right:6px;top:6px}
   #clock{top:auto;bottom:66px;left:10px}
+  #ctx{bottom:62px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;width:max-content}
+  #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px}
 }
 </style>
 </head>
@@ -279,7 +281,7 @@ function bounds(){
 function fitView(){
   const r=stage.getBoundingClientRect(), b=bounds();
   if (!b){ view.s=1.2; view.ox=r.width/2-10*GRID*1.2; view.oy=r.height/2-6*GRID*1.2; return; }
-  const pad=r.width<640?4:8, w=(b.x1-b.x0+pad)*GRID, h=(b.y1-b.y0+pad)*GRID;
+  const pad=r.width<640?7:8, w=(b.x1-b.x0+pad)*GRID, h=(b.y1-b.y0+pad)*GRID;
   view.s=Math.max(0.4,Math.min(2.4,Math.min(r.width/w,(r.height-60)/h)));
   view.ox=r.width/2-(b.x0+b.x1)/2*GRID*view.s; view.oy=(r.height-40)/2-(b.y0+b.y1)/2*GRID*view.s;
 }
@@ -577,7 +579,7 @@ function renderCtx(){
   if (q('freqIn')) q('freqIn').onchange=()=>{ const v=parseSI(q('freqIn').value); if (isFinite(v)&&v>0){ c.freq=v; save(); } q('freqIn').value=fmt(c.freq,'Hz').replace(' ',''); };
   placeCtx();
 }
-function placeCtx(){
+function placeCtx(){ return; // toolbar is docked at the bottom, above the parts bar
   if (!selected) return;
   let gx,gy;
   if (selected.kind==='comp'){ const f=footprint(selected.c); gx=(f.x0+f.x1)/2; gy=f.y0; }
