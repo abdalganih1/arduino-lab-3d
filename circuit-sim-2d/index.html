@@ -85,6 +85,7 @@ button,select,input{font:inherit;color:inherit}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .seg .sb{border:0;border-radius:0}
 .sb.on{background:#2a313b;color:var(--accent)}
+#ctx .fld{display:inline-flex;align-items:center;gap:3px;font:11px ui-monospace,monospace;color:var(--muted)}
 #ghost{position:fixed;pointer-events:none;z-index:50;display:none;opacity:.9}
 @media (max-width:640px){
   .ib{min-width:36px;height:38px;padding:0 6px}
@@ -93,7 +94,7 @@ button,select,input{font:inherit;color:inherit}
   #topbar{right:6px;top:6px}
   #clock{top:66px;left:10px}
   #ctx{bottom:62px;flex-wrap:wrap;justify-content:center;width:calc(100% - 12px);row-gap:4px}
-  #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px} #ctx .rng input{width:96px}
+  #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px} #ctx .knob{width:38px;height:38px} #ctx .speedsel .sp{padding:0 5px} #ctx{padding:4px;gap:3px} #ctx .rng input{width:96px}
   #bAll .lbl{display:none} #info{top:110px;font-size:12px} #drawer{bottom:60px} #drawer .grid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
 }
 </style>
@@ -220,11 +221,13 @@ function canPlace(c, x, y, rot){
   }
   return true;
 }
-function freeSpot(c, x, y, rot){
-  if (canPlace(c,x,y,rot)) return [x,y];
+function pinsTouch(c,x,y,rot){ const ts=terminals(c,x,y,rot); return comps.some(o=>o!==c && terminals(o).some(u=>ts.some(t=>Math.hypot(u[0]-t[0],u[1]-t[1])<1.5))); }
+function freeSpot(c, x, y, rot, apart){
+  const ok=(x,y)=>canPlace(c,x,y,rot) && !(apart && pinsTouch(c,x,y,rot));
+  if (ok(x,y)) return [x,y];
   for (let r=1;r<14;r++) for (let dx=-r;dx<=r;dx++) for (let dy=-r;dy<=r;dy++){
     if (Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
-    if (canPlace(c,x+dx,y+dy,rot)) return [x+dx,y+dy];
+    if (ok(x+dx,y+dy)) return [x+dx,y+dy];
   }
   return [x,y];
 }
@@ -383,7 +386,7 @@ function srcValue(c,t){
   return A;
 }
 const ldrR = c => Math.max(50, Math.min(2e6, 10000*Math.pow(Math.max(c.lux,0.01)/10, -0.7)));
-const ledIs = c => 0.01/Math.exp((LEDC[c.color]||LEDC.red)[1]/(2*VT));
+const ledVf = c => (LEDC[c.color]||LEDC.red)[1], ledIs = c => 0.01*Math.exp(-30);
 
 // ======================= Solver: MNA + Newton-Raphson, BDF2 integration =======================
 function solve(A,b,N){
@@ -408,11 +411,12 @@ const Gs=(S,a,b,g)=>{ S.add(a,a,g); S.add(b,b,g); S.add(a,b,-g); S.add(b,a,-g); 
 const Js=(S,a,b,j)=>{ S.rhs(a,j); S.rhs(b,-j); };        // inject j into a, draw it from b
 const EXPM=40, E40=Math.exp(40);
 const expl=x=>x<EXPM?Math.exp(x):E40*(1+x-EXPM), dexpl=x=>x<EXPM?Math.exp(x):E40;
+let limHit=false;
 function pnjlim(vn,vo,vt,vcrit){
-  if (vn>vcrit && Math.abs(vn-vo)>2*vt){ if (vo>0){ const a=1+(vn-vo)/vt; vn = a>0 ? vo+vt*Math.log(a) : vcrit; } else vn = vt*Math.log(vn/vt); }
+  if (vn>vcrit && Math.abs(vn-vo)>2*vt){ limHit=true; if (vo>0){ const a=1+(vn-vo)/vt; vn = a>0 ? vo+vt*Math.log(a) : vcrit; } else vn = vt*Math.log(vn/vt); }
   return vn;
 }
-const SPK=0.05, sp=x=>x/SPK>30?x:SPK*Math.log1p(Math.exp(x/SPK)), sig=x=>1/(1+Math.exp(-x/SPK));
+const SPK=0.05, sp=(x,k=SPK)=>x/k>30?x:k*Math.log1p(Math.exp(x/k)), sig=(x,k=SPK)=>1/(1+Math.exp(-x/k));
 function diode(e,S,a,k,Is,nVt,Vz){
   const st=e.c.st, vr=S.X(a)-S.X(k), vcrit=nVt*Math.log(nVt/(Math.SQRT2*Is));
   let v=vr;
@@ -468,7 +472,7 @@ function stampElem(e,S){
     case 'V': { const k=net.n+e.k; e.E=srcValue(c,S.t); S.add(k,n[1],1); S.add(n[1],k,1); S.add(k,n[0],-1); S.add(n[0],k,-1); S.rhs(k,e.E); break; }
     case 'RAIL': { const k=net.n+e.k; e.E=c.value; S.add(k,n[0],1); S.add(n[0],k,1); S.rhs(k,e.E); break; }
     case 'D': diode(e,S,n[0],n[1],1e-14,1.8*VT,0); break;
-    case 'LED': diode(e,S,n[0],n[1],ledIs(c),2*VT,0); break;
+    case 'LED': diode(e,S,n[0],n[1],ledIs(c),ledVf(c)/30,0); break;   // 10 mA at Vf for every colour
     case 'Z': diode(e,S,n[0],n[1],1e-14,VT,Math.max(c.value,0.5)-VT*Math.log(5e-3/1e-14)); break;   // Vz reached at 5 mA
     case 'NPN': bjt(e,S,n[0],n[1],n[2],1); break;
     case 'PNP': bjt(e,S,n[0],n[1],n[2],-1); break;
@@ -479,7 +483,7 @@ function stampElem(e,S){
     case 'REG': { const vin=S.X(n[0])-S.X(n[2]), u=vin-2, Vr=c.value||5;          // 2 V dropout
       passOut(S,n[0],n[1],n[2], sp(u)-sp(u-Vr), sig(u)-sig(u-Vr), vin, 10); Gs(S,n[0],n[2],1/2000); break; }
     case 'LM35': { const vs=S.X(n[0])-S.X(n[2]), Tv=c.temp*0.01, top=vs-1.5;      // 10 mV/°C
-      const h=sp(Tv)-sp(Tv-top), dh=sig(Tv-top);
+      const h=sp(Tv,0.002)-sp(Tv-top), dh=sig(Tv-top);
       passOut(S,n[0],n[1],n[2], h, dh, vs, 10); Gs(S,n[0],n[2],1/80000); break; }
     case 'OPAMP': { const [inn,inp,out,vp,vm]=n, Pv=S.X(vp), Mv=S.X(vm);
       let hi=Pv-1.5, lo=Mv+0.02; if (hi<lo+0.02) hi=lo+0.02;
@@ -512,14 +516,12 @@ function postElem(e,x,t,dt){
       if (tg===st.q) st.pend=null;
       else { if (st.pend==null) st.pend=t+Math.max(c.value||0,0); if (t>=st.pend-1e-15){ st.q=tg; st.pend=null; st.flips=(st.flips||0)+1; } }
       break; }
-    case 'AVO': { const s=c.st, v=X(n[1])-X(n[0]); let r;
+    case 'AVO': { const v=X(n[1])-X(n[0]); let r;
       if (c.mm==='A'||c.mm==='AAC') r=e.ip[1]||0;
       else if (c.mm==='R'){ const I=(1-v)/1000; r = I>1e-12 ? Math.min(1e12,v/I) : 1e12; }
       else r=v;
-      s.n=(s.n||0)+1; s.s=(s.s||0)+r; s.s2=(s.s2||0)+r*r; s.tw=(s.tw||0)+dt;
-      s.mn=Math.min(s.mn??Infinity,r); s.mx=Math.max(s.mx??-Infinity,r);
-      if (c.mm==='F'){ const mid=s.mid??0, hy=s.hy??0.05;
-        if (!s.hi && v>mid+hy){ s.hi=true; s.k=(s.k||0)+1; if (s.k===1) s.t0=t; s.t1=t; } else if (s.hi && v<mid-hy) s.hi=false; }
+      const b=c.mb||(c.mb=[]); b.push({t,v:r});                     // the meter keeps its own short history
+      if (b.length>4000 && b[0].t < t-speed*15) b.splice(0, lb(b,t-speed*15));
       break; }
     case 'T555': { const g=X(n[5]), vcc=X(n[4])-g, tr=X(n[2])-g, th=X(n[1])-g;
       if (vcc>1){ if (tr<vcc/3) c.st.q=1; else if (th>2*vcc/3) c.st.q=0; } else c.st.q=0; break; }
@@ -534,9 +536,9 @@ function step(dt){
   for (let it=0; it<(net.nl?40:1); it++){
     const S=sysS(N,x); S.dt=dt; S.be=be; S.t=t;
     for (let i=0;i<n;i++) S.A[i][i]+=GMIN;
-    for (const e of elems) stampElem(e,S);
+    limHit=false; for (const e of elems) stampElem(e,S);
     if (!solve(S.A,S.z,N)){ ok=false; break; }
-    let conv=true; for (let i=0;i<N;i++){ if (Math.abs(S.z[i]-x[i]) > 1e-6+1e-4*Math.abs(S.z[i])){ conv=false; break; } }
+    let conv=!limHit; for (let i=0;i<N;i++){ if (Math.abs(S.z[i]-x[i]) > 1e-6+1e-4*Math.abs(S.z[i])){ conv=false; break; } }
     x=S.z; if (conv && it>0) break;
   }
   if (!ok){ net.ok=false; return; }
@@ -556,22 +558,29 @@ function step(dt){
 }
 const MLAB={V:'V⎓',VAC:'V~',A:'A⎓',AAC:'A~',R:'Ω',F:'Hz'};
 // a real meter updates a few times per second: average (DC), RMS of the AC part, or count cycles (Hz)
+// a real meter settles: averages and RMS are taken over whole periods of the signal
 function meterTick(c){
-  const s=c.st, mm=c.mm; if (!s.n) return;
-  const avg=s.s/s.n;
+  const b=c.mb, mm=c.mm; if (!b || b.length<20){ if (!c.disp) c.disp='…'; return; }
+  const un = mm[0]==='A' ? 'A' : mm==='R' ? 'Ω' : 'V', tR=b[b.length-1].t, hist=tR-b[0].t;
+  const f = mm==='R' ? NaN : measureF(b, tR-speed*12, tR);
+  const win = Math.min(speed*12, isFinite(f) ? Math.max(speed*0.6, 3/f) : speed*0.6);
+  const st=statsOf(b, tR-win, tR, f); if (!st) return;
+  const varying = mm!=='R' && isVarying(st,un);
+  c.sub = varying ? 'p-p '+fmt(st.pp,un)+(isFinite(f)&&mm!=='F'?' · '+fmt(f,'Hz'):'') : '';
   if (mm==='F'){
-    s.mid=(s.mn+s.mx)/2; s.hy=Math.max(1e-3,(s.mx-s.mn)*0.1);
-    if ((s.k||0)<3 && s.tw<speed*12) return;                 // keep counting slow signals
-    const f = s.k>=2 && s.t1>s.t0 ? (s.k-1)/(s.t1-s.t0) : 0;
-    c.disp = fmt(f,'Hz');
-  } else if (mm==='V'||mm==='A') c.disp=fmt(avg, mm);
-  else if (mm==='VAC'||mm==='AAC') c.disp=fmt(Math.sqrt(Math.max(0,s.s2/s.n-avg*avg)), mm[0]);
-  else c.disp = (avg>1e8||avg<-1) ? 'OL' : fmt(Math.max(0,avg),'Ω');
-  s.n=0; s.s=0; s.s2=0; s.tw=0; s.mn=Infinity; s.mx=-Infinity; s.k=0;
+    if (isFinite(f)) c.disp=fmt(f,'Hz');
+    else if (!varying) c.disp='0 Hz';
+    else if (hist<speed*12) c.disp='…';
+    else { c.disp='< '+fmt(2/hist,'Hz'); c.sub='إشارة بطيئة: ارفع سرعة الزمن ⏱'; }
+  }
+  else if (mm==='V'||mm==='A') c.disp=fmt(st.avg,un);
+  else if (mm==='VAC'||mm==='AAC') c.disp=fmt(st.ac,un);
+  else c.disp = (st.avg>1e8||st.avg<-1) ? 'OL' : fmt(Math.max(0,st.avg),'Ω');
+  if (varying && !isFinite(f) && mm!=='F') c.sub+=' · تتغير ببطء';
 }
 function resetSim(){
   simTime=0; firstStep=true; stepAcc=0;
-  comps.forEach(c=>{c.st=newState(); c.phase=0; c.ph=c.ph.map(()=>0);}); links.forEach(l=>l.phase=0);
+  comps.forEach(c=>{c.st=newState(); c.phase=0; c.ph=c.ph.map(()=>0); if (c.type==='AVO'){ c.disp=''; c.sub=''; c.mb=[]; }}); links.forEach(l=>l.phase=0);
   if (net){ net.x=new Float64Array(net.n+net.m); net.elems.forEach(e=>{e.v=0;e.i=0;e.ip=e.n.map(()=>0);}); }
   probes.forEach(p=>p.buf.length=0); for (const k in axisState) delete axisState[k]; scopeRight=null;
 }
@@ -579,7 +588,7 @@ function resetSim(){
 // ======================= Formatting =======================
 function fmt(v,unit){
   if (!isFinite(v)) return (v>0?'∞':'—')+' '+unit;
-  const a=Math.abs(v); if (a<1e-12) return '0 '+unit;
+  const a=Math.abs(v); if (a<5e-11) return '0 '+unit;
   for (const [mul,s] of [[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n']])
     if (a>=mul*0.9995) return parseFloat((v/mul).toPrecision(3))+' '+s+unit;
   return parseFloat((v/1e-12).toPrecision(3))+' p'+unit;
@@ -731,7 +740,7 @@ function drawComp(c){
     case 'LM35': {
       pinLead(c,0,-26,0); pinLead(c,1,26,0); pinLead(c,2,0,22);
       ctx.fillStyle='#141a21'; ctx.strokeStyle=BODY; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(-26,22); ctx.lineTo(-26,0); ctx.arc(0,0,26,Math.PI,0); ctx.lineTo(26,22); ctx.closePath(); ctx.fill(); ctx.stroke();
-      utext(c,'LM35',0,2,'bold 11px ui-monospace,monospace','#e8ecf1'); utext(c,Math.round(c.temp)+'°C',0,14,'10px ui-monospace,monospace','#ff9f43'); break; }
+      utext(c,'LM35',0,6,'bold 11px ui-monospace,monospace','#e8ecf1'); break; }
     case 'OPAMP': {
       pinLead(c,0,-26,-20); pinLead(c,1,-26,20); pinLead(c,2,26,0); pinLead(c,3,0,-14); pinLead(c,4,0,14);
       ctx.fillStyle='#141a21'; ctx.strokeStyle=BODY; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-26,-28); ctx.lineTo(26,0); ctx.lineTo(-26,28); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -742,7 +751,8 @@ function drawComp(c){
       if (sel){ ctx.shadowColor='#f5b83d'; ctx.shadowBlur=16; }
       ctx.fillStyle='#1d2630'; ctx.strokeStyle='#f5b83d'; ctx.lineWidth=2.2; ctx.beginPath(); ctx.roundRect(-44,-30,88,56,8); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
       ctx.fillStyle='#0a1a11'; ctx.beginPath(); ctx.roundRect(-38,-24,76,30,4); ctx.fill();
-      utext(c, c.disp||'—', 0,-9,'bold 14px ui-monospace,monospace','#7cffb2');
+      if (c.sub){ utext(c, c.disp||'—', 0,-13,'bold 13px ui-monospace,monospace','#7cffb2'); utext(c, c.sub, 0,0,'8px ui-monospace,monospace','#5fbf8a'); }
+      else utext(c, c.disp||'—', 0,-9,'bold 14px ui-monospace,monospace','#7cffb2');
       utext(c,'COM',-20,17,'8px ui-monospace,monospace','#8e98a6'); utext(c,'+',20,17,'bold 11px ui-monospace,monospace','#ff6b6b');
       utext(c,MLAB[c.mm]||'',0,17,'bold 10px ui-monospace,monospace','#f5b83d'); break; }
     case 'T555': case 'RELAY': {
@@ -771,7 +781,8 @@ function drawComp(c){
 function compText(c){
   const T=c.type, D=DEF[T];
   switch(T){
-    case 'G': case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': case 'NOT': case 'REG': case 'T555': case 'OPAMP': case 'LM35': case 'RAIL': return '';
+    case 'G': case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': case 'NOT': case 'REG': case 'T555': case 'OPAMP': case 'RAIL': return '';
+    case 'LM35': return '🌡 '+Math.round(c.temp)+'°C';
     case 'V': return c.mode==='dc' ? fmt(c.value,'V') : '±'+fmt(c.value,'V')+(c.off?(c.off>0?' +':' ')+fmt(c.off,'V'):'')+' '+fmt(c.freq,'Hz');
     case 'AVO': return '';
     case 'SW': return c.on?'مغلق':'مفتوح';
@@ -928,7 +939,7 @@ cv.addEventListener('pointermove', e=>{
   const w=toWorld(p.x,p.y);
   mouseW=w;
   if (!drag){ hoverT = e.pointerType==='mouse' ? hitTerm(w) : null; cv.style.cursor = hoverT?'crosshair':(hitComp(w)||hitLink(w))?'grab':'default'; return; }
-  if (Math.hypot(p.x-drag.p0.x,p.y-drag.p0.y)>4) drag.moved=true;
+  if (Math.hypot(p.x-drag.p0.x,p.y-drag.p0.y)>(touchMode?10:4)) drag.moved=true;
   if (drag.type==='wire' && drag.moved){ armed=null; drag={type:'move', c:drag.c, dx:drag.dx, dy:drag.dy, p0:drag.p0, moved:true}; select({kind:'comp',c:drag.c}); }
   if (drag.type==='pan'){ view.ox=drag.ox+p.x-drag.p0.x; view.oy=drag.oy+p.y-drag.p0.y; }
   else if (drag.type==='wire'){ drag.wx=w.x; drag.wy=w.y; hoverT=hitTerm(w); }
@@ -947,7 +958,7 @@ function endPointer(e){
     const t=hitTerm({x:drag.wx,y:drag.wy});
     if (!drag.moved){
       if (armed && !(armed.c===drag.c && armed.ti===drag.ti)){
-        const l=addLink(armed.c,armed.ti,drag.c,drag.ti); armed=null; if (l) select({kind:'wire',l}); else select(null); save();
+        const l=addLink(armed.c,armed.ti,drag.c,drag.ti); armed=null; if (l) select({kind:'wire',l}); else select(null); save(true);
       } else if (armed){ armed=null; select(null); }
       else { armed={c:drag.c, ti:drag.ti}; select({kind:'node', c:drag.c, ti:drag.ti}); }
     }
@@ -962,14 +973,14 @@ cv.addEventListener('wheel',e=>{ e.preventDefault(); const p=local(e); zoomAt(Ma
 function rotateSel(){
   if (!selected || selected.kind!=='comp') return;
   const c=selected.c, nr=(c.rot+1)%4;
-  for (const r of [nr,(nr+1)%4,(nr+2)%4]) if (canPlace(c,c.x,c.y,r)){ c.rot=r; autoLink(c); dirty=true; save(); renderCtx(); return; }
+  for (const r of [nr,(nr+1)%4,(nr+2)%4]) if (canPlace(c,c.x,c.y,r)){ c.rot=r; autoLink(c); dirty=true; save(true); renderCtx(); return; }
 }
 function deleteSel(){
   if (!selected) return; armed=null;
   if (selected.kind==='comp'){ const c=selected.c; comps=comps.filter(o=>o!==c); links=links.filter(l=>l.c1!==c&&l.c2!==c); probes=probes.filter(p=>p.c!==c); }
   else if (selected.kind==='wire') links=links.filter(l=>l!==selected.l);
   else if (selected.kind==='node'){ const {c,ti}=selected; links=links.filter(l=>!((l.c1===c&&l.t1===ti)||(l.c2===c&&l.t2===ti))); }
-  dirty=true; select(null); save(); renderChips();
+  dirty=true; select(null); save(true); renderChips();
 }
 window.addEventListener('keydown',e=>{
   if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
@@ -1025,8 +1036,8 @@ function placeFrom(b,t,fromDrawer){
       else { sx=r.width/2; sy=r.height/2-40; }
       if (fromDrawer) openDrawer(false);
       const g=snap(toWorld(sx,sy)), rot=DEF[t].rot||0;
-      const c=addComp(t,g.x,g.y,rot); const [fx,fy]=freeSpot(c,g.x,g.y,rot); c.x=fx; c.y=fy; autoLink(c);
-      select({kind:'comp',c}); save();
+      const c=addComp(t,g.x,g.y,rot); const [fx,fy]=freeSpot(c,g.x,g.y,rot,!moved); c.x=fx; c.y=fy; if (moved) autoLink(c);
+      select({kind:'comp',c}); save(true);
     };
     document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
   });
@@ -1114,8 +1125,8 @@ function setupValueEditor(c){
 
 // ======================= Context toolbar (selected item) =======================
 const ctxEl=document.getElementById('ctx');
-function select(s){ selected=s; renderCtx(); }
-function toggleSwitch(c){ c.on=!c.on; dirty=true; save(); renderCtx(); }
+function select(s){ selected=s; renderCtx(); if (s && innerWidth<=760 && curEx && infoEl.style.display==='flex' && !infoEl.classList.contains('mini')) showInfo(curEx,true); }
+function toggleSwitch(c){ c.on=!c.on; dirty=true; save(true); renderCtx(); }
 function hasProbe(kind,c,ti){ return probes.find(p=>p.kind===kind && p.c===c && p.ti===ti); }
 function toggleProbe(kind,c,ti){
   const ex=hasProbe(kind,c,ti);
@@ -1144,7 +1155,7 @@ function renderCtx(){
     }
     if (c.type==='V'){
       h+=`<select id="modeIn"><option value="dc"${c.mode==='dc'?' selected':''}>DC</option><option value="ac"${c.mode==='ac'?' selected':''}>AC ~</option><option value="sq"${c.mode==='sq'?' selected':''}>⊓ مربعة</option><option value="tri"${c.mode==='tri'?' selected':''}>⋀ مثلثية</option><option value="saw"${c.mode==='saw'?' selected':''}>⩘ سن منشار</option></select>`;
-      if (c.mode!=='dc') h+=`<input id="freqIn" value="${fmt(c.freq,'Hz').replace(' ','')}" title="التردد"><input id="offIn" value="${fmt(c.off||0,'V').replace(' ','')}" title="إزاحة DC (تُضاف للموجة)">`;
+      if (c.mode!=='dc') h+=`<label class="fld">f<input id="freqIn" value="${fmt(c.freq,'Hz').replace(' ','')}" title="التردد"></label><label class="fld">DC<input id="offIn" value="${fmt(c.off||0,'V').replace(' ','')}" title="إزاحة DC (تُضاف للموجة)"></label>`;
     }
     if (c.type==='REG') h+=`<select id="regIn" title="جهد الخرج">${[5,6,8,9,12,15].map(v=>`<option value="${v}"${v===c.value?' selected':''}>78${String(v).padStart(2,'0')} → ${v}V</option>`).join('')}</select>`;
     if (c.type==='LED') h+=`<select id="ledIn" title="اللون">${Object.entries(LEDC).map(([k,v])=>`<option value="${k}"${k===c.color?' selected':''}>${v[2]}</option>`).join('')}</select>`;
@@ -1173,7 +1184,7 @@ function renderCtx(){
   if (q('valIn')) setupValueEditor(c);
   if (q('modeIn')) q('modeIn').onchange=()=>{ c.mode=q('modeIn').value; save(); renderCtx(); };
   if (q('swT')) q('swT').onclick=()=>toggleSwitch(c);
-  if (q('mmIn')) q('mmIn').onchange=()=>{ c.mm=q('mmIn').value; c.st=newState(); c.disp='…'; dirty=true; save(); };
+  if (q('mmIn')) q('mmIn').onchange=()=>{ c.mm=q('mmIn').value; c.st=newState(); c.mb=[]; c.disp='…'; c.sub=''; dirty=true; save(); };
   if (q('offIn')) q('offIn').onchange=()=>{ const v=parseSI(q('offIn').value.replace('−','-')); if (isFinite(v)){ c.off=v; save(); } q('offIn').value=fmt(c.off||0,'V').replace(' ',''); };
   if (q('regIn')) q('regIn').onchange=()=>{ c.value=+q('regIn').value; save(); };
   if (q('ledIn')) q('ledIn').onchange=()=>{ c.color=q('ledIn').value; save(); };
@@ -1181,7 +1192,7 @@ function renderCtx(){
     const show=()=>{ out.textContent = c.type==='POT' ? Math.round(c.pos*100)+'%' : c.type==='LDR' ? fmt(c.lux,'lx') : Math.round(c.temp)+'°C'; };
     r.oninput=()=>{ const v=+r.value; if (c.type==='POT') c.pos=v/100; else if (c.type==='LDR') c.lux=parseFloat(Math.pow(10,v).toPrecision(2)); else c.temp=v; show(); };
     r.onchange=()=>save(); show(); }
-  if (q('freqIn')) q('freqIn').onchange=()=>{ const v=parseSI(q('freqIn').value); if (isFinite(v)&&v>0){ c.freq=v; save(); } q('freqIn').value=fmt(c.freq,'Hz').replace(' ',''); };
+  if (q('freqIn')) q('freqIn').onchange=()=>{ const v=parseSI(q('freqIn').value); if (isFinite(v)&&v>0){ c.freq=v; if (c.freq*speed/(60*SUB)>0.02) setSpeed(fitSpeed(c.freq)); save(); } q('freqIn').value=fmt(c.freq,'Hz').replace(' ',''); };
   placeCtx();
 }
 function placeCtx(){ return; // toolbar is docked at the bottom, above the parts bar
@@ -1204,6 +1215,7 @@ const SCOPE_N=480, DIVS=4;
 const axisState={};            // unit -> {lo,hi,step}
 let scopeCursor=null;          // x in css px, or null
 let scopeRight=null, scopeZoom=1, scopeLay=null, scopePan=null;   // scopeRight=null -> live
+let scopeAuto=true, autoT=0;   // automatic time span: a few periods of the slowest periodic trace
 const HIST=120000;            // samples per trace (one per simulation step)
 let scopeMode='time';         // 'time' | 'freq' (spectrum)
 function probeValue(p){
@@ -1220,13 +1232,23 @@ const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${pinName(p.c,p.ti)})` : `${p.
 function renderChips(){
   scopeWrap.style.display = probes.length ? 'flex' : 'none';
   chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><small class="pf" id="pf${i}"></small><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
-    + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
+    + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><button class="sb ${scopeAuto?'on':''}" id="sAuto" title="عرض زمني تلقائي: بضع دورات من الإشارة">تلقائي</button><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
   chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
-  scopeBtn('sZi',()=>{ scopeZoom=Math.max(0.02,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
-  scopeBtn('sZo',()=>{ scopeZoom=Math.min(40,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('sAuto',()=>{ setAuto(!scopeAuto); if (scopeAuto) autoT=0; });
+  scopeBtn('sZi',()=>{ setAuto(false); scopeZoom=Math.max(0.002,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('sZo',()=>{ setAuto(false); scopeZoom=Math.min(10,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
   scopeBtn('scopeLive',()=>{ scopeRight=null; });
   chips.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ scopeMode=b.dataset.m; renderChips(); });
   resize();
+}
+function setAuto(on){ scopeAuto=on; const b=document.getElementById('sAuto'); if (b) b.classList.toggle('on',on); }
+const nice125=x=>{ const e=Math.pow(10,Math.floor(Math.log10(x))), m=x/e; return (m<=1?1:m<=2?2:m<=5?5:10)*e; };
+function autoSpan(tNow){
+  const base=speed*SCOPE_N/60, dt=speed/(60*SUB); let fmin=Infinity;
+  probes.forEach(p=>{ const f=measureF(p.buf, tNow-base*5, tNow); if (isFinite(f)&&f>0) fmin=Math.min(fmin,f); });
+  let tgt = isFinite(fmin) ? nice125(3/fmin) : base;                 // ~3-6 periods, or the default window
+  tgt=Math.max(dt*80, Math.min(base*20, tgt));
+  if (Math.abs(Math.log(tgt/(base*scopeZoom)))>0.15){ scopeZoom=tgt/base; if (scopeRight!==null) setRight(scopeRight); }
 }
 function niceStep(raw){
   if (!(raw>0)) return 1;
@@ -1282,18 +1304,36 @@ function spectrumOf(buf,tL,tR){
   if (kp && mp>1e-3*(M[0]+mp)+1e-15){ const A=M[kp-1], B=M[kp], C=M[kp+1], d=A-2*B+C; fp=(kp+(d?0.5*(A-C)/d:0))/T; }
   return {M, df:1/T, peak:fp, peakA:mp};
 }
-// frequency from rising crossings (with hysteresis) inside the visible window
+// frequency from rising crossings (with hysteresis) inside the visible window. Only a regular
+// signal gets a frequency: if the crossing intervals disagree, a wider hysteresis is tried
+// (that ignores small ringing), and if nothing is regular no frequency is claimed.
 function measureF(buf,tL,tR){
   const j0=lb(buf,tL); let mn=Infinity, mx=-Infinity, j=j0;
   for (; j<buf.length && buf[j].t<=tR; j++){ const v=buf[j].v; if (isFinite(v)){ if (v<mn) mn=v; if (v>mx) mx=v; } }
   if (!(mx-mn > 1e-9+1e-3*Math.max(Math.abs(mn),Math.abs(mx)))) return NaN;
-  const up=(mn+mx)/2+(mx-mn)*0.1, dn=(mn+mx)/2-(mx-mn)*0.1; let hi=null, k=0, t0=0, t1=0;
-  for (let i=j0+1;i<j;i++){ const v=buf[i].v, pv=buf[i-1].v; if (!isFinite(v)) continue;
-    if (hi===null) hi=v>up;
-    else if (!hi && v>up){ hi=true; k++; const tc=buf[i-1].t+(up-pv)/((v-pv)||1)*(buf[i].t-buf[i-1].t); if (k===1) t0=tc; t1=tc; }
-    else if (hi && v<dn) hi=false; }
-  return k>=2 && t1>t0 ? (k-1)/(t1-t0) : NaN;
+  const mid=(mn+mx)/2, pp=mx-mn;
+  for (const h of [0.1,0.3,0.45]){
+    const up=mid+pp*h, dn=mid-pp*h; let hi=null; const tc=[];
+    for (let i=j0+1;i<j;i++){ const v=buf[i].v, pv=buf[i-1].v; if (!isFinite(v)) continue;
+      if (hi===null) hi=v>up;
+      else if (!hi && v>up){ hi=true; tc.push(buf[i-1].t+(up-pv)/((v-pv)||1)*(buf[i].t-buf[i-1].t)); }
+      else if (hi && v<dn) hi=false; }
+    if (tc.length<2 || (tc.length===2 && h<0.45)) continue;
+    let a=Infinity, b=0; for (let k=1;k<tc.length;k++){ const d=tc[k]-tc[k-1]; a=Math.min(a,d); b=Math.max(b,d); }
+    if (b<=a*1.25) return (tc.length-1)/(tc[tc.length-1]-tc[0]);
+  }
+  return NaN;
 }
+// statistics over whole periods (when a frequency is known) so the numbers settle
+function statsOf(buf,tL,tR,f){
+  if (!buf.length) return null;
+  let a=Math.max(tL,buf[0].t); if (isFinite(f) && f>0){ const n=Math.floor((tR-a)*f+1e-9); if (n>=1) a=tR-n/f; }
+  let n=0, S=0, Q=0, mn=Infinity, mx=-Infinity;
+  for (let j=lb(buf,a); j<buf.length && buf[j].t<=tR; j++){ const v=buf[j].v; if (!isFinite(v)) continue; n++; S+=v; Q+=v*v; if (v<mn) mn=v; if (v>mx) mx=v; }
+  if (!n) return null;
+  const avg=S/n; return {avg, rms:Math.sqrt(Q/n), ac:Math.sqrt(Math.max(0,Q/n-avg*avg)), pp:mx-mn, mn, mx};
+}
+const isVarying=(st,u)=>st && st.pp > Math.max(u==='A'?2e-6:2e-3, 0.01*Math.max(Math.abs(st.mn),Math.abs(st.mx)));
 const niceCeil=x=>{ const st=niceStep(x/5); return Math.ceil(x/st-1e-9)*st; };
 let pfT=0;
 function drawScope(){
@@ -1309,6 +1349,7 @@ function drawScope(){
   const X0=AXW*nL+6, X1=w-AXW*Math.max(nR,0)-(nR?6:14), Y0=10, Y1=h-24, PW=X1-X0, PH=Y1-Y0;
   // time window (in frequency mode it is the stretch of signal that is analysed)
   let tNow=0; probes.forEach(p=>{ if (p.buf.length) tNow=Math.max(tNow,p.buf[p.buf.length-1].t); });
+  if (scopeAuto && scopeRight===null && performance.now()-autoT>500){ autoT=performance.now(); autoSpan(tNow); }
   const span=speed*SCOPE_N/60*scopeZoom; let tR=scopeRight===null?tNow:Math.min(scopeRight,tNow); const tL=tR-span; tNow=tR;
   scopeLay={X0,X1,PW,span,tR};
   document.getElementById('scopeLive').style.display = scopeRight===null ? 'none' : 'inline-flex';
@@ -1393,8 +1434,17 @@ function drawScope(){
     let v;
     if (FQ){ const sp=specs[i]; v = !sp ? NaN : cur!==null ? sp.M[Math.min(sp.M.length-1,Math.round(cur/sp.df))] : sp.peakA;
       if (pf && upd) pf.textContent = sp && isFinite(sp.peak) ? '▲ '+fmt(sp.peak,'Hz') : ''; }
-    else { v = p.buf.length ? at(p.buf, cur ?? tR) : NaN;
-      if (pf && upd){ const f=measureF(p.buf,tL,tR); pf.textContent = isFinite(f) ? 'f '+fmt(f,'Hz') : ''; } }
+    else if (cur!==null){ v = p.buf.length ? at(p.buf, cur) : NaN; if (pf) pf.textContent=''; }
+    else {
+      // a varying signal never settles, so show RMS (or the average for DC with ripple) plus p-p and f
+      if (!upd) return;
+      const f=measureF(p.buf,tL,tR), st=statsOf(p.buf,tL,tR,f), un=UNIT[p.kind];
+      if (p.kind!=='R' && isVarying(st,un)){
+        const dc = Math.abs(st.avg) > 3*st.ac;
+        v = dc ? st.avg : st.rms;
+        if (pf) pf.textContent = (dc?'متوسط':'RMS')+' · '+(dc?'تموّج ':'')+'p-p '+fmt(st.pp,un)+(isFinite(f)?' · '+fmt(f,'Hz'):'');
+      } else { v = p.buf.length ? p.buf[p.buf.length-1].v : NaN; if (pf) pf.textContent = isFinite(f) ? fmt(f,'Hz') : ''; }
+    }
     el.textContent = isFinite(v) ? fmt(v,UNIT[p.kind]) : '—';
     if (cur!==null && isFinite(v)){ const Y=yv(p.kind,v), x=Math.round(scopeCursor)+0.5; g.fillStyle='#0b0e12'; g.beginPath(); g.arc(x,Y,5.5,0,Math.PI*2); g.fill(); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill(); }
   });
@@ -1425,7 +1475,7 @@ scope.addEventListener('pointermove',e=>{
   const r=scope.getBoundingClientRect();
   if (sPtr.has(e.pointerId)) sPtr.set(e.pointerId,e.clientX);
   if (sPinch){ if (sPtr.size===2){ const [a,b]=[...sPtr.values()], d=Math.max(24,Math.abs(a-b));
-      scopeZoom=Math.max(0.02,Math.min(40,sPinch.z*sPinch.d/d));
+      setAuto(false); scopeZoom=Math.max(0.002,Math.min(10,sPinch.z*sPinch.d/d));
       if (!sPinch.live) setRight(sPinch.tAt+speed*SCOPE_N/60*scopeZoom*(1-sPinch.fx)); }
     return; }
   if (scopePan && scopeLay){ const dx=e.clientX-scopePan.x; if (Math.abs(dx)>3) scopePan.moved=true; if (scopePan.moved){ setRight(scopePan.tR - dx/scopeLay.PW*scopeLay.span); scope.style.cursor='grabbing'; } }
@@ -1438,8 +1488,8 @@ scope.addEventListener('wheel',e=>{
   e.preventDefault(); if (!scopeLay) return;
   if (Math.abs(e.deltaX)>Math.abs(e.deltaY) || e.shiftKey){ const d=(e.deltaX||e.deltaY); setRight(scopeLay.tR + d/scopeLay.PW*scopeLay.span); return; }
   const r=scope.getBoundingClientRect(), fx=Math.max(0,Math.min(1,(e.clientX-r.left-scopeLay.X0)/scopeLay.PW));
-  const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.02,Math.min(40,scopeZoom*Math.exp(e.deltaY*0.0015)));
-  const nspan=speed*SCOPE_N/60*nz; scopeZoom=nz;
+  const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.002,Math.min(10,scopeZoom*Math.exp(e.deltaY*0.0015)));
+  const nspan=speed*SCOPE_N/60*nz; scopeZoom=nz; setAuto(false);
   if (scopeRight!==null || fx<0.98) setRight(tAt+nspan*(1-fx));
 },{passive:false});
 function scopeBtn(id,fn){ document.getElementById(id).onclick=fn; }
@@ -1447,7 +1497,9 @@ function scopeBtn(id,fn){ document.getElementById(id).onclick=fn; }
 // ======================= Top bar =======================
 const speedSel=document.getElementById('speed');
 speedSel.innerHTML=SPEEDS.map(s=>`<option value="${s}">⏱ ${fmt(s,'s')}/s</option>`).join('');
-function setSpeed(s){ speed=s; speedSel.value=String(s); }
+// fastest speed that still gives >= 50 simulation steps per period of f
+function fitSpeed(f){ const lim=0.02*60*SUB/f; let best=SPEEDS[0]; for (const v of SPEEDS) if (v<=lim) best=v; return best; }
+function setSpeed(s){ speed=s; speedSel.value=String(s); autoT=0; }
 speedSel.onchange=()=>setSpeed(+speedSel.value);
 document.getElementById('bReset').onclick=resetSim;
 document.getElementById('bFit').onclick=fitView;
@@ -1611,7 +1663,7 @@ function showInfo(name,collapsed){
 }
 function loadExample(name){
   comps=[]; links=[]; probes=[]; counters={}; dirty=true; resetSim(); select(null);
-  const r=EX[name](); build(); setSpeed(r.speed); scopeZoom=r.zoom||1; scopeRight=null; scopeMode='time';
+  const r=EX[name](); build(); setSpeed(r.speed); scopeZoom=1; setAuto(true); autoT=0; scopeRight=null; scopeMode='time';
   curEx = name==='clear' ? null : name; showInfo(curEx,false);
   r.probes.forEach(([k,c,ti])=>toggleProbe(k,c,ti));
   select(null); renderChips(); fitView(); save();
@@ -1628,14 +1680,15 @@ function snapshot(){
     probes:probes.map(p=>[p.kind,p.c.id,p.ti??null,p.col]), speed, counters, ex:curEx});
 }
 const hist=[], redo=[];
-function save(){
+function save(now){
   clearTimeout(saveT);
-  saveT=setTimeout(()=>{
+  const flush=()=>{
     const snap=snapshot();
     if (hist[hist.length-1]!==snap){ hist.push(snap); if (hist.length>150) hist.shift(); redo.length=0; }
     updUndo();
     try{ localStorage.setItem('circuit2d_v2', snap); }catch(_){}
-  },250);
+  };
+  if (now) flush(); else saveT=setTimeout(flush,250);
 }
 function restore(d){
   comps=d.comps.filter(c=>DEF[c.type]).map(c=>{ const o={pos:0.5,lux:100,temp:25,on:false,color:'red',mm:'V',disp:'',...c,st:newState(),phase:0,ph:[]};
@@ -1689,6 +1742,10 @@ function frame(ts){
     uiT=ts; clockEl.textContent='t = '+fmt(simTime,'s');
     const ws=[...net.warns];
     if (!net.ok) ws.push({t:'تعذّر الحل: منبعا جهد على التوازي مباشرة'});
+    const fmax=Math.max(0,...comps.filter(c=>c.type==='V'&&c.mode!=='dc').map(c=>c.freq));
+    if (fmax*speed/(60*SUB) > 0.02) ws.push({t:'⚠ تردد المنبع '+fmt(fmax,'Hz')+' أعلى من دقة الزمن الحالية — اختر سرعة ⏱ '+fmt(fitSpeed(fmax),'s')+'/s أو أبطأ، وإلا تظهر الموجة بتردد خاطئ'});
+    const hot=comps.find(c=>c.type==='LED' && c.e && Math.abs(c.e.ip[0]||0)>0.05);
+    if (hot) ws.push({t:'🔥 '+hot.label+' يمر فيه '+fmt(Math.abs(hot.e.ip[0]),'A')+' — LED حقيقي يحترق فوق ~30mA، أضف مقاومة على التوالي'});
     let flips=0; comps.forEach(c=>{ if (GATES.has(c.type)){ flips=Math.max(flips,c.st.flips||0); c.st.flips=0; } });
     if (stepsUI>4 && flips>stepsUI*0.3) ws.push({info:true,t:'البوابة تهتز أسرع من خطوة المحاكاة — خفّض سرعة الزمن ⏱ أو كبّر tpd لترى الاهتزاز'});
     stepsUI=0;
