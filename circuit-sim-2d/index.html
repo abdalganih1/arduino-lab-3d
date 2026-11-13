@@ -40,17 +40,24 @@ button,select,input{font:inherit;color:inherit}
 #ctx .ib.pv{color:#3ddc84}#ctx .ib.pi{color:#ffd84a}#ctx .ib.pr{color:#c792ea}
 #ctx .ib.pv.on{background:#3ddc84;color:#04220f}#ctx .ib.pi.on{background:#ffd84a;color:#2a2100}#ctx .ib.pr.on{background:#c792ea;color:#1d0b2b}
 #ctx .nm{font:12px ui-monospace,monospace;color:var(--muted);padding:0 6px;direction:ltr}
-#scopeWrap{display:none;height:170px;border-top:1px solid var(--line);background:#0f1318;position:relative;flex:none}
-#scope{position:absolute;inset:0;width:100%;height:100%}
-#chips{position:absolute;top:6px;right:8px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
-.chip{display:flex;align-items:center;gap:6px;font:12px ui-monospace,monospace;background:rgba(24,29,36,.9);border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px;direction:ltr}
+#scopeWrap{display:none;flex-direction:column;height:250px;border-top:1px solid var(--line);background:#0d1116;flex:none}
+#scopeBox{position:relative;flex:1;min-height:0}
+#scope{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:7px 10px 2px}
+#chips .hint{font-size:11px;color:#5d6672;margin-inline-start:auto}
+.sbtns{display:flex;gap:4px}
+.sb{height:26px;min-width:28px;border:1px solid var(--line);background:#161b22;border-radius:7px;cursor:pointer;font-size:13px;padding:0 8px}
+.sb:hover{border-color:#3b4452}
+.sb.live{display:none;align-items:center;color:#ff5a5f;font-size:12px}
+.chip{display:flex;align-items:center;gap:7px;font:12px ui-monospace,monospace;background:#161b22;border:1px solid var(--line);border-radius:8px;padding:3px 4px 3px 9px;direction:ltr}
+.chip b{min-width:64px;text-align:right}
 .chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:0 4px}
 #ghost{position:fixed;pointer-events:none;z-index:50;display:none;opacity:.9}
 @media (max-width:640px){
   .ib{min-width:36px;height:38px;padding:0 6px}
   #bar{bottom:8px}
-  #scopeWrap{height:140px}
+  #scopeWrap{height:220px} #chips .hint{display:none} .sbtns{margin-inline-start:auto}
   #topbar{right:6px;top:6px}
   #clock{top:auto;bottom:66px;left:10px}
   #ctx{bottom:62px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;width:max-content}
@@ -80,7 +87,7 @@ button,select,input{font:inherit;color:inherit}
   <div class="pill" id="bar"></div>
   <div class="pill" id="ctx"></div>
 </main>
-<div id="scopeWrap"><canvas id="scope"></canvas><div id="chips"></div></div>
+<div id="scopeWrap"><div id="chips"></div><div id="scopeBox"><canvas id="scope"></canvas></div></div>
 <div id="ghost"></div>
 <script>
 "use strict";
@@ -279,7 +286,7 @@ function resetSim(){
   simTime=0; firstStep=true; stepAcc=0;
   comps.forEach(c=>{c.st=newState(); c.phase=0;}); links.forEach(l=>l.phase=0);
   if (net){ net.x=new Float64Array(net.n+net.m); net.elems.forEach(e=>{e.v=0;e.i=0;}); }
-  probes.forEach(p=>p.buf.length=0);
+  probes.forEach(p=>p.buf.length=0); for (const k in axisState) delete axisState[k]; scopeRight=null;
 }
 
 // ======================= Formatting =======================
@@ -460,7 +467,12 @@ function distSeg(px,py,x1,y1,x2,y2){ const dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy; let
 let touchMode=false;
 function hitTerm(w){
   const tol=(touchMode?24:14)/Math.min(view.s,1.4); let best=null, bd=tol;
-  for (const c of comps) terminals(c).forEach((t,ti)=>{ const d=Math.hypot(t[0]*GRID-w.x,t[1]*GRID-w.y); if(d<bd){bd=d;best={c,ti};} });
+  let bs=Infinity;
+  for (const c of comps) terminals(c).forEach((t,ti)=>{
+    const d=Math.hypot(t[0]*GRID-w.x,t[1]*GRID-w.y); if (d>=tol) return;
+    const f=footprint(c), sc=d+0.05*Math.hypot((f.x0+f.x1)/2*GRID-w.x,(f.y0+f.y1)/2*GRID-w.y);
+    if (sc<bs){ bs=sc; best={c,ti}; }
+  });
   return best;
 }
 function hitComp(w){
@@ -485,7 +497,7 @@ cv.addEventListener('pointerdown', e=>{
   if (pointers.size===2){ const [a,b]=[...pointers.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:view.s,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox:view.ox,oy:view.oy}; drag=null; return; }
   const w=toWorld(p.x,p.y);
   const t=hitTerm(w);
-  if (t){ drag={type:'wire', c:t.c, ti:t.ti, wx:w.x, wy:w.y, p0:p, moved:false}; return; }
+  if (t){ const g=snap(w); drag={type:'wire', c:t.c, ti:t.ti, wx:w.x, wy:w.y, p0:p, moved:false, dx:g.x-t.c.x, dy:g.y-t.c.y}; return; }
   armed=null;
   const c=hitComp(w);
   if (c){ const g=snap(w); drag={type:'move', c, dx:g.x-c.x, dy:g.y-c.y, p0:p, moved:false}; select({kind:'comp',c}); return; }
@@ -503,6 +515,7 @@ cv.addEventListener('pointermove', e=>{
   mouseW=w;
   if (!drag){ hoverT = e.pointerType==='mouse' ? hitTerm(w) : null; cv.style.cursor = hoverT?'crosshair':(hitComp(w)||hitLink(w))?'grab':'default'; return; }
   if (Math.hypot(p.x-drag.p0.x,p.y-drag.p0.y)>4) drag.moved=true;
+  if (drag.type==='wire' && drag.moved){ armed=null; drag={type:'move', c:drag.c, dx:drag.dx, dy:drag.dy, p0:drag.p0, moved:true}; select({kind:'comp',c:drag.c}); }
   if (drag.type==='pan'){ view.ox=drag.ox+p.x-drag.p0.x; view.oy=drag.oy+p.y-drag.p0.y; }
   else if (drag.type==='wire'){ drag.wx=w.x; drag.wy=w.y; hoverT=hitTerm(w); }
   else if (drag.type==='move'){
@@ -644,8 +657,15 @@ function placeCtx(){ return; // toolbar is docked at the bottom, above the parts
 }
 
 // ======================= Scope =======================
+// Each unit (V, A, Ω) gets its own vertical axis with numeric ticks; traces of the same unit share it,
+// so several signals (voltage + current + …) can be overlaid and compared. All axes use the same
+// number of divisions so their gridlines line up.
 const scopeWrap=document.getElementById('scopeWrap'), scope=document.getElementById('scope'), chips=document.getElementById('chips');
-const SCOPE_N=400;
+const SCOPE_N=480, DIVS=4;
+const axisState={};            // unit -> {lo,hi,step}
+let scopeCursor=null;          // x in css px, or null
+let scopeRight=null, scopeZoom=1, scopeLay=null, scopePan=null;   // scopeRight=null -> live
+const HIST=30000;
 function probeValue(p){
   if (p.ti!==undefined) return termV(p.c,p.ti);
   const e=p.c.e; if (!e) return 0;
@@ -655,41 +675,161 @@ function probeValue(p){
   return Math.abs(e.i)>1e-12 ? Math.abs(v/e.i) : NaN;   // R = V / I
 }
 const UNIT={V:'V',I:'A',R:'Ω'};
-const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${p.ti===0?'a':'b'})` : `${p.kind}(${p.c.label})`;
+const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${p.ti===0?'a':'b'})` : `${p.kind==='I'?'I':p.kind}(${p.c.label})`;
 function renderChips(){
-  scopeWrap.style.display = probes.length ? 'block' : 'none';
-  chips.innerHTML = probes.map((p,i)=>`<span class="chip"><i style="background:${p.col}"></i>${pname(p)} <b id="pv${i}"></b><button data-i="${i}" title="إزالة">✕</button></span>`).join('');
-  chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
+  scopeWrap.style.display = probes.length ? 'flex' : 'none';
+  chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
+    + `<span class="hint">اسحب يمين/يسار للرجوع بالزمن · العجلة للتكبير</span><span class="sbtns"><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button></span>`;
+  chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
+  scopeBtn('sZi',()=>{ scopeZoom=Math.max(0.05,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('sZo',()=>{ scopeZoom=Math.min(40,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('scopeLive',()=>{ scopeRight=null; });
   resize();
+}
+function niceStep(raw){
+  if (!(raw>0)) return 1;
+  const e=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/e;
+  return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;
+}
+function axisFor(unit, lo, hi){
+  if (!isFinite(lo)){ lo=-1; hi=1; }
+  if (hi-lo < 1e-15){ const d=Math.max(Math.abs(hi)*0.2, unit==='A'?1e-6:1e-3); lo-=d; hi+=d; }
+  const st=axisState[unit];
+  if (st && lo>=st.lo && hi<=st.hi && (hi-lo) > 0.3*(st.hi-st.lo)) return st;   // keep: avoids jitter
+  let step=niceStep((hi-lo)/DIVS), a0=Math.floor(lo/step+1e-9)*step;
+  while (a0+DIVS*step < hi-1e-12){ step=niceStep(step*1.01); a0=Math.floor(lo/step+1e-9)*step; }
+  // centre the data when there is spare room
+  const spare=Math.floor((a0+DIVS*step-hi)/step - ((lo-a0)/step));
+  if (spare>=2) a0+=Math.floor(spare/2)*step;
+  return axisState[unit]={lo:a0, hi:a0+DIVS*step, step};
+}
+function axisFmt(ax, unit){
+  const m=Math.max(Math.abs(ax.lo),Math.abs(ax.hi));
+  let mul=1, pre='';
+  for (const [k,s] of [[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p']]) if (m>=k*0.999){ mul=k; pre=s; break; }
+  if (m<1e-12){ mul=1; pre=''; }
+  const s=ax.step/mul; let d=0; while (d<4 && Math.abs(Math.round(s*10**d)-s*10**d)>1e-6) d++;
+  return {title:pre+unit, f:v=>{ const r=(v/mul).toFixed(d); return r==='-0'||/^-0\.0+$/.test(r)?r.slice(1):r; }};
 }
 function drawScope(){
   if (!probes.length) return;
-  const w=scope.clientWidth, h=scope.clientHeight;
+  const w=scope.clientWidth, h=scope.clientHeight; if (!w||!h) return;
   if (scope.width!==Math.round(w*dpr) || scope.height!==Math.round(h*dpr)){ scope.width=Math.round(w*dpr); scope.height=Math.round(h*dpr); }
   const g=scope.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
-  g.fillStyle='#0f1318'; g.fillRect(0,0,w,h);
-  g.strokeStyle='#1d242d'; g.lineWidth=1;
-  for (let i=1;i<10;i++){ g.beginPath(); g.moveTo(w*i/10,0); g.lineTo(w*i/10,h); g.stroke(); }
-  for (let i=1;i<4;i++){ g.beginPath(); g.moveTo(0,h*i/4); g.lineTo(w,h*i/4); g.stroke(); }
-  g.strokeStyle='#2b333e'; g.beginPath(); g.moveTo(0,h/2); g.lineTo(w,h/2); g.stroke();
-  const pad=12, x=(k,n)=>w-(n-1-k)*(w/(SCOPE_N-1));
-  probes.forEach((p,i)=>{
-    const buf=p.buf; if (buf.length<2) return;
-    let mx=0; for (const v of buf) if (isFinite(v)) mx=Math.max(mx,Math.abs(v));
-    g.strokeStyle=p.col; g.lineWidth=2; g.beginPath(); let pen=false;
-    if (p.kind==='R'){
-      mx=mx||1;
-      buf.forEach((v,k)=>{ if(!isFinite(v)){pen=false;return;} const y=h-pad-(v/mx)*(h-2*pad-20); pen?g.lineTo(x(k,buf.length),y):g.moveTo(x(k,buf.length),y); pen=true; });
-    } else {
-      mx=mx||1e-12;
-      buf.forEach((v,k)=>{ const y=h/2-(v/mx)*(h/2-pad); pen?g.lineTo(x(k,buf.length),y):g.moveTo(x(k,buf.length),y); pen=true; });
-    }
-    g.stroke();
-    const el=document.getElementById('pv'+i); if (el) el.textContent=fmt(buf[buf.length-1],UNIT[p.kind]);
+  g.fillStyle='#0d1116'; g.fillRect(0,0,w,h);
+  // units in order of appearance -> axes (1st left, 2nd right, 3rd outer left)
+  const units=[...new Set(probes.map(p=>p.kind))];
+  const AXW=50, side=units.map((u,i)=>i===1?'R':'L');
+  const nL=side.filter(s=>s==='L').length, nR=side.filter(s=>s==='R').length;
+  const X0=AXW*nL+6, X1=w-AXW*Math.max(nR,0)-(nR?6:14), Y0=10, Y1=h-24, PW=X1-X0, PH=Y1-Y0;
+  // time window
+  let tNow=0; probes.forEach(p=>{ if (p.buf.length) tNow=Math.max(tNow,p.buf[p.buf.length-1].t); });
+  const span=speed*SCOPE_N/60*scopeZoom; let tR=scopeRight===null?tNow:Math.min(scopeRight,tNow); const tL=tR-span; tNow=tR;
+  scopeLay={X0,X1,PW,span,tR};
+  document.getElementById('scopeLive').style.display = scopeRight===null ? 'none' : 'inline-flex';
+  const xt=t=>X0+(t-tL)/span*PW;
+  // axes ranges
+  const axes={};
+  units.forEach(u=>{
+    let lo=Infinity, hi=-Infinity;
+    probes.filter(p=>p.kind===u).forEach(p=>p.buf.forEach(q=>{ if (q.t>=tL && q.t<=tR && isFinite(q.v)){ lo=Math.min(lo,q.v); hi=Math.max(hi,q.v);} }));
+    if (u==='R' && isFinite(lo)) lo=Math.min(lo,0);
+    const ax=axisFor(u,lo,hi); axes[u]={...ax, ...axisFmt(ax, UNIT[u])};
   });
-  g.fillStyle='#5d6672'; g.font='11px ui-monospace,monospace'; g.direction='ltr'; g.textAlign='left'; g.textBaseline='bottom';
-  g.fillText(fmt(speed*SCOPE_N/60/10,'s')+' / div', 8, h-4);
+  const yv=(u,v)=>Y1-(v-axes[u].lo)/(axes[u].hi-axes[u].lo)*PH;
+  // plot frame + grid
+  g.fillStyle='#0b0e12'; g.fillRect(X0,Y0,PW,PH);
+  g.lineWidth=1;
+  for (let i=0;i<=DIVS;i++){
+    const y=Math.round(Y0+PH*i/DIVS)+0.5;
+    g.strokeStyle=i===0||i===DIVS?'#2b333e':'#1b222b'; g.beginPath(); g.moveTo(X0,y); g.lineTo(X1,y); g.stroke();
+    for (let k=1;k<5 && i<DIVS;k++){ const yy=Math.round(Y0+PH*(i+k/5)/DIVS)+0.5; g.strokeStyle='#141a21'; g.beginPath(); g.moveTo(X0,yy); g.lineTo(X0+5,yy); g.moveTo(X1-5,yy); g.lineTo(X1,yy); g.stroke(); }
+  }
+  // zero line of the first axis if visible
+  const u0=units[0]; if (axes[u0].lo<0 && axes[u0].hi>0){ const y=Math.round(yv(u0,0))+0.5; g.strokeStyle='#3a4451'; g.setLineDash([3,3]); g.beginPath(); g.moveTo(X0,y); g.lineTo(X1,y); g.stroke(); g.setLineDash([]); }
+  // time gridlines
+  const tstep=niceStep(span/7);
+  g.font='10.5px ui-monospace,monospace'; g.direction='ltr'; g.textBaseline='top'; g.textAlign='center';
+  for (let t=Math.ceil(tL/tstep)*tstep; t<=tNow+1e-12; t+=tstep){
+    if (t<0) continue;
+    const x=Math.round(xt(t))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke();
+    g.fillStyle='#6b7583'; g.fillText(fmt(t,'s'), x, Y1+5);
+  }
+  // axis labels
+  let li=0, ri=0;
+  units.forEach((u,i)=>{
+    const ax=axes[u], tr=probes.filter(p=>p.kind===u), col=tr.length===1?tr[0].col:'#c9d1db';
+    const left=side[i]==='L', xa = left ? X0-6-AXW*(li++) : X1+6+AXW*(ri++);
+    g.fillStyle=col; g.textBaseline='middle'; g.textAlign=left?'right':'left'; g.font='11px ui-monospace,monospace';
+    for (let k=0;k<=DIVS;k++){ const v=ax.lo+k*ax.step, y=yv(u,v); if (k===DIVS && y<Y0+1) { g.fillText(ax.f(v), xa, y+5); } else g.fillText(ax.f(v), xa, y); }
+    // unit title, on its own at the outer edge
+    g.save(); g.translate(left? xa-AXW+12 : xa+AXW-12, Y0+PH/2); g.rotate(-Math.PI/2);
+    g.textAlign='center'; g.font='bold 12px ui-monospace,monospace'; g.fillText(ax.title,0,0); g.restore();
+    // coloured axis spine
+    g.strokeStyle=col+'aa'; g.lineWidth=2; g.beginPath(); const xs=left?X0-AXW*(li-1)-0.5:X1+AXW*(ri-1)+0.5; g.moveTo(xs,Y0); g.lineTo(xs,Y1); g.stroke(); g.lineWidth=1;
+  });
+  // traces
+  g.save(); g.beginPath(); g.rect(X0,Y0,PW,PH); g.clip();
+  probes.forEach(p=>{
+    const buf=p.buf; if (buf.length<2) return;
+    g.strokeStyle=p.col; g.lineWidth=2; g.lineJoin='round'; g.shadowColor=p.col; g.shadowBlur=4;
+    g.beginPath(); let pen=false;
+    let j0=lb(buf,tL)-1; if (j0<0) j0=0;
+    for (let j=j0;j<buf.length;j++){ const q=buf[j]; if (q.t>tR) { if (pen){ g.lineTo(xt(q.t),yv(p.kind,q.v)); } break; } if (!isFinite(q.v)){ pen=false; continue; } const X=xt(q.t), Y=yv(p.kind,q.v); pen?g.lineTo(X,Y):g.moveTo(X,Y); pen=true; }
+    g.stroke(); g.shadowBlur=0;
+  });
+  g.restore();
+  // live values
+  probes.forEach((p,i)=>{ const el=document.getElementById('pv'+i); const q=p.buf[Math.max(0,lb(p.buf,tR)-(scopeRight===null?1:0))] || p.buf[p.buf.length-1]; if (el) el.textContent=q?fmt(q.v,UNIT[p.kind]):''; });
+  // reading cursor
+  if (scopeCursor!==null && scopeCursor>=X0 && scopeCursor<=X1){
+    const t=tL+(scopeCursor-X0)/PW*span, x=Math.round(scopeCursor)+0.5;
+    g.strokeStyle='#e8ecf1aa'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.setLineDash([]);
+    const rows=[];
+    probes.forEach(p=>{
+      const b=p.buf; if (b.length<2) return;
+      const j=lb(b,t); if (j<=0 || j>=b.length) return;
+      const a=b[j-1], c=b[j], f=(t-a.t)/((c.t-a.t)||1), v=a.v+(c.v-a.v)*f;
+      if (!isFinite(v)) return;
+      const Y=yv(p.kind,v); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill();
+      rows.push([p.col, pname(p)+' = '+fmt(v,UNIT[p.kind])]);
+    });
+    if (rows.length){
+      g.font='12px ui-monospace,monospace'; const tw=Math.max(...rows.map(r=>g.measureText(r[1]).width), g.measureText('t = '+fmt(t,'s')).width)+22;
+      const bh=18*(rows.length+1)+8; let bx=x+10; if (bx+tw>X1) bx=x-10-tw; const by=Y0+6;
+      g.fillStyle='rgba(16,20,26,.94)'; g.strokeStyle='#2b333e'; g.beginPath(); g.roundRect(bx,by,tw,bh,8); g.fill(); g.stroke();
+      g.textAlign='left'; g.textBaseline='middle'; g.fillStyle='#8e98a6'; g.fillText('t = '+fmt(t,'s'), bx+10, by+13);
+      rows.forEach((r,k)=>{ g.fillStyle=r[0]; g.fillText(r[1], bx+10, by+13+18*(k+1)); });
+    }
+  }
 }
+function lb(b,t){ let lo=0, hi=b.length; while (lo<hi){ const m=(lo+hi)>>1; if (b[m].t<t) lo=m+1; else hi=m; } return lo; }
+function oldestT(){ let o=Infinity; probes.forEach(p=>{ if (p.buf.length) o=Math.min(o,p.buf[0].t); }); return isFinite(o)?o:0; }
+function setRight(t){
+  if (!scopeLay) return;
+  let now=0; probes.forEach(p=>{ if (p.buf.length) now=Math.max(now,p.buf[p.buf.length-1].t); });
+  const min=Math.min(now, oldestT()+scopeLay.span*0.5);
+  scopeRight = t>=now-1e-12 ? null : Math.max(min,t);
+}
+// drag left/right on the scope = scroll through time; wheel = zoom time; hover/tap = reading cursor
+scope.addEventListener('pointerdown',e=>{ scope.setPointerCapture(e.pointerId); const r=scope.getBoundingClientRect(); scopeCursor=e.clientX-r.left; scopePan={x:e.clientX, tR:scopeLay?scopeLay.tR:0, moved:false}; });
+scope.addEventListener('pointermove',e=>{
+  const r=scope.getBoundingClientRect();
+  if (scopePan && scopeLay){ const dx=e.clientX-scopePan.x; if (Math.abs(dx)>3) scopePan.moved=true; if (scopePan.moved){ setRight(scopePan.tR - dx/scopeLay.PW*scopeLay.span); scope.style.cursor='grabbing'; } }
+  scopeCursor=e.clientX-r.left;
+});
+const endPan=()=>{ scopePan=null; scope.style.cursor='crosshair'; };
+scope.addEventListener('pointerup',endPan); scope.addEventListener('pointercancel',endPan);
+scope.addEventListener('pointerleave',()=>{ if (!scopePan) scopeCursor=null; });
+scope.addEventListener('wheel',e=>{
+  e.preventDefault(); if (!scopeLay) return;
+  if (Math.abs(e.deltaX)>Math.abs(e.deltaY) || e.shiftKey){ const d=(e.deltaX||e.deltaY); setRight(scopeLay.tR + d/scopeLay.PW*scopeLay.span); return; }
+  const r=scope.getBoundingClientRect(), fx=Math.max(0,Math.min(1,(e.clientX-r.left-scopeLay.X0)/scopeLay.PW));
+  const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.05,Math.min(40,scopeZoom*Math.exp(e.deltaY*0.0015)));
+  const nspan=speed*SCOPE_N/60*nz; scopeZoom=nz;
+  if (scopeRight!==null || fx<0.98) setRight(tAt+nspan*(1-fx));
+},{passive:false});
+function scopeBtn(id,fn){ document.getElementById(id).onclick=fn; }
 
 // ======================= Top bar =======================
 const speedSel=document.getElementById('speed');
@@ -771,7 +911,7 @@ function frame(ts){
     Imax=im>Imax?im:Imax*0.97+im*0.03;
     const k=90*dtReal/Math.max(Imax,1e-12);
     for (const e of net.elems){ if (e.kind==='W') e.l.phase+=e.i*k; else e.c.phase+=e.i*k; }
-    for (const p of probes){ p.buf.push(probeValue(p)); if (p.buf.length>SCOPE_N) p.buf.shift(); }
+    for (const p of probes){ p.buf.push({t:simTime, v:probeValue(p)}); if (p.buf.length>HIST) p.buf.splice(0, p.buf.length-HIST); }
   }
   draw(); drawScope(); placeCtx();
   if (ts-uiT>150){
