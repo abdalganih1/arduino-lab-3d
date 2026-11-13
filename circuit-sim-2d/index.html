@@ -75,6 +75,16 @@ button,select,input{font:inherit;color:inherit}
 #ctx .rng{display:inline-flex;align-items:center;gap:4px;background:#0f1318;border:1px solid var(--line);border-radius:8px;height:34px;padding:0 8px;font-size:14px}
 #ctx .rng input{width:120px;height:26px;border:0;background:transparent;padding:0;accent-color:#f5b83d}
 #ctx .rng span{font:12px ui-monospace,monospace;color:#f5b83d;min-width:48px;direction:ltr;text-align:center}
+#info{top:62px;left:10px;display:none;flex-direction:column;align-items:stretch;gap:4px;max-width:min(360px,calc(100% - 20px));padding:8px 12px 10px;font-size:13px;line-height:1.75;z-index:4}
+#info .ihead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#info .ihead b{color:var(--accent);font-size:14px}
+#info .ihead .ib{min-width:30px;height:30px}
+#info.mini{padding:3px}
+#info.mini .ib{font-size:12px;height:32px;color:var(--accent)}
+.chip .pf{color:#8e98a6;font-size:11px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg .sb{border:0;border-radius:0}
+.sb.on{background:#2a313b;color:var(--accent)}
 #ghost{position:fixed;pointer-events:none;z-index:50;display:none;opacity:.9}
 @media (max-width:640px){
   .ib{min-width:36px;height:38px;padding:0 6px}
@@ -84,7 +94,7 @@ button,select,input{font:inherit;color:inherit}
   #clock{top:66px;left:10px}
   #ctx{bottom:62px;flex-wrap:wrap;justify-content:center;width:calc(100% - 12px);row-gap:4px}
   #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px} #ctx .rng input{width:96px}
-  #bAll .lbl{display:none} #drawer{bottom:60px} #drawer .grid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
+  #bAll .lbl{display:none} #info{top:110px;font-size:12px} #drawer{bottom:60px} #drawer .grid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
 }
 </style>
 </head>
@@ -98,6 +108,8 @@ button,select,input{font:inherit;color:inherit}
       <option value="">☰ نماذج</option>
       <optgroup label="أساسيات"><option value="divider">مقسم الجهد</option><option value="rc">شحن مكثفة RC</option><option value="rl">ملف RL</option><option value="rlc">رنين RLC</option></optgroup>
       <optgroup label="أشباه موصلات"><option value="ledsw">LED مع قاطع</option><option value="zener">تنظيم بزينر</option><option value="night">إنارة ليلية (LDR + ترانزستور)</option><option value="relay">ريلاي يبدّل لمبتين</option></optgroup>
+      <optgroup label="AC ← DC والموجات"><option value="waves">أشكال الموجات الأربعة</option><option value="half">تقويم نصف موجة</option><option value="smooth">تقويم + تنعيم بمكثفة</option><option value="bridge">من AC إلى DC: قنطرة + تنعيم + 7805</option><option value="lowpass">مرشح RC وطيف التردد</option></optgroup>
+      <optgroup label="قياس واهتزاز"><option value="ohm">قانون أوم بالأفوميتر</option><option value="notosc">مهتز ببوابة NOT</option></optgroup>
       <optgroup label="دارات متكاملة"><option value="reg">منظم 7805</option><option value="t555">وامض 555</option><option value="and">بوابة AND</option><option value="opamp">مضخم LM358 غير عاكس</option></optgroup>
       <option value="clear">لوحة فارغة</option>
     </select>
@@ -111,6 +123,7 @@ button,select,input{font:inherit;color:inherit}
   <div class="pill" id="bar"></div>
   <div class="pill" id="ctx"></div>
   <div class="pill" id="drawer"></div>
+  <div class="pill" id="info"></div>
 </main>
 <div id="scopeWrap"><div id="chips"></div><div id="scopeBox"><canvas id="scope"></canvas></div></div>
 <div id="ghost"></div>
@@ -139,22 +152,24 @@ const DEF = {
   NPN: {name:'ترانزستور NPN', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['C','B','E'], meas:{v:[0,2],i:0}},
   PNP: {name:'ترانزستور PNP', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['C','B','E'], meas:{v:[2,0],i:0,s:-1}},
   NMOS:{name:'MOSFET قناة N', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['D','G','S'], meas:{v:[0,2],i:0}},
-  AND: {name:'AND', cat:2, pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
-  OR:  {name:'OR',  cat:2, pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
-  NAND:{name:'NAND',cat:2, pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
-  NOR: {name:'NOR', cat:2, pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
-  XOR: {name:'XOR', cat:2, pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
-  NOT: {name:'NOT', cat:2, pins:[[-2,0],[2,0]], box:[-1.3,-0.9,1.3,0.9], pn:['A','Y'], meas:{v:[1]}},
+  AND: {name:'AND', cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
+  OR:  {name:'OR',  cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
+  NAND:{name:'NAND',cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
+  NOR: {name:'NOR', cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
+  XOR: {name:'XOR', cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
+  NOT: {name:'NOT', cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,0],[2,0]], box:[-1.3,-0.9,1.3,0.9], pn:['A','Y'], meas:{v:[1]}},
   REG: {name:'منظم 78xx', cat:3, pins:[[-2,0],[2,0],[0,2]], box:[-1.3,-1,1.3,1.2], pn:['IN','OUT','GND'], def:5, meas:{v:[1,2],i:1,s:-1}},
   T555:{name:'مؤقت 555', cat:3, pins:[[-3,-2],[-3,0],[-3,2],[3,0],[0,-3],[0,3]], ...CHIP6, pn:['DIS','THR','TRIG','OUT','VCC','GND'], meas:{v:[3,5],i:3,s:-1}},
   OPAMP:{name:'مضخم LM358', cat:3, pins:[[-2,-1],[-2,1],[2,0],[0,-2],[0,2]], box:[-1.3,-1.4,1.3,1.4], pn:['IN−','IN+','OUT','V+','V−'], meas:{v:[2,4],i:2,s:-1}},
   LM35:{name:'حساس حرارة LM35', cat:4, pins:[[-2,0],[2,0],[0,2]], box:[-1.3,-1,1.3,1.2], pn:['+Vs','OUT','GND'], meas:{v:[1,2],i:1,s:-1}},
   LDR: {name:'مقاومة ضوئية', cat:4, ...TWO, pn:['a','b'], meas:{v:[0,1],i:0}},
+  AVO: {name:'أفوميتر', cat:0, pins:[[-1,2],[1,2]], box:[-2.2,-1.5,2.2,1.3], pn:['COM','+'], meas:{v:[1,0],i:1}},
   RELAY:{name:'ريلاي', cat:4, pins:[[-3,-1],[-3,1],[3,-2],[3,0],[3,2]], ...CHIP6, pn:['L1','L2','NO','COM','NC'], meas:{v:[0,1],i:0}},
 };
 const CATS = ['أساسي','أشباه موصلات','بوابات منطقية','دارات متكاملة','حساسات وتحكم'];
 const TYPES = DEF;   // legacy alias
-const PCOL = {V:['#3ddc84','#4cc9f0','#7ee787'], I:['#ffd84a','#ff9f43','#f6e05e'], R:['#c792ea','#ff7eb6','#a78bfa']};
+const PCOL = {V:['#3ddc84','#4cc9f0','#7ee787','#f78c6c'], I:['#ffd84a','#ff9f43','#f6e05e','#ffa8a8'], R:['#c792ea','#ff7eb6','#a78bfa','#9ae6ff']};
+const GATES = new Set(['AND','OR','NAND','NOR','XOR','NOT']);
 let comps = [], links = [], probes = [], nextId = 1, counters = {};
 let selected = null;       // {kind:'comp',c} | {kind:'wire',l} | {kind:'node',c,ti}
 let dirty = true, net = null;
@@ -163,13 +178,13 @@ const SPEEDS = [1e-5,1e-4,1e-3,1e-2,5e-2,0.1,0.2,0.5,1];
 let speed = 0.2;
 const SUB = 25;
 const newState = () => ({vp:0,vpp:0,ip:0,ipp:0,q:0,on:false,lit:0});
-const LABEL = {G:'GND', RAIL:'VCC', T555:'U', OPAMP:'U', REG:'U', LM35:'U', AND:'U', OR:'U', NAND:'U', NOR:'U', XOR:'U', NOT:'U', NPN:'Q', PNP:'Q', NMOS:'Q', RELAY:'K', LDR:'LDR', POT:'RV', LED:'LED', SW:'S', Z:'DZ'};
+const LABEL = {G:'GND', RAIL:'VCC', T555:'U', OPAMP:'U', REG:'U', LM35:'U', AND:'U', OR:'U', NAND:'U', NOR:'U', XOR:'U', NOT:'U', NPN:'Q', PNP:'Q', NMOS:'Q', RELAY:'K', AVO:'M', LDR:'LDR', POT:'RV', LED:'LED', SW:'S', Z:'DZ'};
 function addComp(type, x, y, rot, value, extra){
   const pre = LABEL[type] || type;
   counters[pre] = (counters[pre]||0)+1;
   const c = {id:nextId++, type, x, y, rot:rot??(DEF[type].rot||0), value: value ?? DEF[type].def ?? 0, mode:'dc', freq:1,
              label: type==='G' ? 'GND' : pre+counters[pre], st:newState(), phase:0, ph:[],
-             pos:0.5, lux:100, temp:25, on:false, color:'red'};
+             pos:0.5, lux:100, temp:25, on:false, color:'red', off:0, mm:'V', disp:''};
   if (extra) Object.assign(c, extra);
   comps.push(c); dirty = true; return c;
 }
@@ -324,6 +339,7 @@ function edgesOf(e){
     case 'OPAMP': return [[2,3,false],[2,4,false],[3,4,false]];
     case 'T555': return [[4,5,false],[3,4,false],[3,5,false],[0,5,false]];
     case 'RELAY': return [[0,1,true], c.st.on?[3,2,true]:[3,4,true]];
+    case 'AVO': return [[0,1, c.mm==='A'||c.mm==='AAC']];
   }
   return [];
 }
@@ -356,9 +372,15 @@ function markBridges(){
 }
 function termV(c,ti){ if (!net) return 0; const i=net.idx.get(tkey(c,ti)); return i===undefined||i<0 ? 0 : net.x[i]; }
 function srcValue(c,t){
-  if (c.mode==='ac') return c.value*Math.sin(2*Math.PI*c.freq*t);
-  if (c.mode==='sq') return Math.sin(2*Math.PI*c.freq*t)>=0 ? c.value : 0;
-  return c.value;
+  if (c.mode==='dc') return c.value;
+  const ph=((c.freq*t)%1+1)%1, o=c.off||0, A=c.value;
+  switch(c.mode){
+    case 'ac':  return o+A*Math.sin(2*Math.PI*ph);
+    case 'sq':  return o+(ph<0.5?A:-A);
+    case 'tri': return o+A*(ph<0.25?4*ph : ph<0.75?2-4*ph : 4*ph-4);
+    case 'saw': return o+A*(2*ph-1);
+  }
+  return A;
 }
 const ldrR = c => Math.max(50, Math.min(2e6, 10000*Math.pow(Math.max(c.lux,0.01)/10, -0.7)));
 const ledIs = c => 0.01/Math.exp((LEDC[c.color]||LEDC.red)[1]/(2*VT));
@@ -471,10 +493,13 @@ function stampElem(e,S){
       if (c.st.q){ const g=1/10; S.add(out,out,g); S.add(out,vcc,-g); S.rhs(out,-1.5*g); S.add(vcc,vcc,g); S.add(vcc,out,-g); S.rhs(vcc,1.5*g); }
       else { Gs(S,out,gnd,1/10); Gs(S,dis,gnd,1/20); }
       Gs(S,thr,gnd,1e-9); Gs(S,trig,gnd,1e-9); Gs(S,dis,gnd,1e-9); break; }
+    case 'AVO': if (c.mm==='A'||c.mm==='AAC') Gs(S,n[0],n[1],GW);                       // ammeter: ~1 mΩ in series
+      else if (c.mm==='R'){ Gs(S,n[1],n[0],1e-3); Js(S,n[1],n[0],1e-3); }               // ohmmeter: 1 V behind 1 kΩ
+      else Gs(S,n[0],n[1],1e-7); break;                                                   // voltmeter: 10 MΩ
     case 'RELAY': Gs(S,n[0],n[1],1/100); Gs(S,n[3],n[2],c.st.on?GW:1e-9); Gs(S,n[3],n[4],c.st.on?1e-9:GW); break;
   }
 }
-function postElem(e,x){
+function postElem(e,x,t,dt){
   const c=e.c, n=e.n, X=i=>i<0?0:x[i];
   switch(e.kind){
     case 'C': { const s=c.st; s.vpp=s.vp; s.vp=X(n[0])-X(n[1]); break; }
@@ -482,7 +507,20 @@ function postElem(e,x){
     case 'LED': c.st.lit=Math.max(0,Math.min(1,e.ip[0]/0.015)); break;
     case 'NOT': case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': {
       const A=X(n[0])>2.5, B=n.length>2 && X(n[1])>2.5;
-      c.st.q = ({NOT:!A, AND:A&&B, OR:A||B, NAND:!(A&&B), NOR:!(A||B), XOR:A!==B})[e.kind] ? 1 : 0; break; }
+      const tg = ({NOT:!A, AND:A&&B, OR:A||B, NAND:!(A&&B), NOR:!(A||B), XOR:A!==B})[e.kind] ? 1 : 0, st=c.st;
+      // propagation delay: the output follows the logic only tpd after the inputs changed (inertial delay)
+      if (tg===st.q) st.pend=null;
+      else { if (st.pend==null) st.pend=t+Math.max(c.value||0,0); if (t>=st.pend-1e-15){ st.q=tg; st.pend=null; st.flips=(st.flips||0)+1; } }
+      break; }
+    case 'AVO': { const s=c.st, v=X(n[1])-X(n[0]); let r;
+      if (c.mm==='A'||c.mm==='AAC') r=e.ip[1]||0;
+      else if (c.mm==='R'){ const I=(1-v)/1000; r = I>1e-12 ? Math.min(1e12,v/I) : 1e12; }
+      else r=v;
+      s.n=(s.n||0)+1; s.s=(s.s||0)+r; s.s2=(s.s2||0)+r*r; s.tw=(s.tw||0)+dt;
+      s.mn=Math.min(s.mn??Infinity,r); s.mx=Math.max(s.mx??-Infinity,r);
+      if (c.mm==='F'){ const mid=s.mid??0, hy=s.hy??0.05;
+        if (!s.hi && v>mid+hy){ s.hi=true; s.k=(s.k||0)+1; if (s.k===1) s.t0=t; s.t1=t; } else if (s.hi && v<mid-hy) s.hi=false; }
+      break; }
     case 'T555': { const g=X(n[5]), vcc=X(n[4])-g, tr=X(n[2])-g, th=X(n[1])-g;
       if (vcc>1){ if (tr<vcc/3) c.st.q=1; else if (th>2*vcc/3) c.st.q=0; } else c.st.q=0; break; }
     case 'RELAY': { const I=Math.abs((X(n[0])-X(n[1]))/100); if (!c.st.on && I>0.03) c.st.on=true; else if (c.st.on && I<0.015) c.st.on=false; break; }
@@ -512,9 +550,24 @@ function step(dt){
   for (const e of elems){
     e.v = (e.n.length>1) ? (e.n[0]<0?0:x[e.n[0]])-(e.n[1]<0?0:x[e.n[1]]) : 0;
     e.i = e.ip[0]||0;
-    if (e.kind!=='W') postElem(e,x);
+    if (e.kind!=='W') postElem(e,x,t,dt);
   }
   simTime+=dt; lastDt=dt; firstStep=false;
+}
+const MLAB={V:'V⎓',VAC:'V~',A:'A⎓',AAC:'A~',R:'Ω',F:'Hz'};
+// a real meter updates a few times per second: average (DC), RMS of the AC part, or count cycles (Hz)
+function meterTick(c){
+  const s=c.st, mm=c.mm; if (!s.n) return;
+  const avg=s.s/s.n;
+  if (mm==='F'){
+    s.mid=(s.mn+s.mx)/2; s.hy=Math.max(1e-3,(s.mx-s.mn)*0.1);
+    if ((s.k||0)<3 && s.tw<speed*12) return;                 // keep counting slow signals
+    const f = s.k>=2 && s.t1>s.t0 ? (s.k-1)/(s.t1-s.t0) : 0;
+    c.disp = fmt(f,'Hz');
+  } else if (mm==='V'||mm==='A') c.disp=fmt(avg, mm);
+  else if (mm==='VAC'||mm==='AAC') c.disp=fmt(Math.sqrt(Math.max(0,s.s2/s.n-avg*avg)), mm[0]);
+  else c.disp = (avg>1e8||avg<-1) ? 'OL' : fmt(Math.max(0,avg),'Ω');
+  s.n=0; s.s=0; s.s2=0; s.tw=0; s.mn=Infinity; s.mx=-Infinity; s.k=0;
 }
 function resetSim(){
   simTime=0; firstStep=true; stepAcc=0;
@@ -532,7 +585,7 @@ function fmt(v,unit){
   return parseFloat((v/1e-12).toPrecision(3))+' p'+unit;
 }
 function parseSI(str){
-  const m=String(str).trim().replace(',','.').match(/^([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s*([pnuµmkKMG]?)/);
+  const m=String(str).trim().replace(',','.').replace('−','-').match(/^([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s*([pnuµmkKMG]?)/);
   if (!m) return NaN;
   return parseFloat(m[1])*{p:1e-12,n:1e-9,u:1e-6,'µ':1e-6,m:1e-3,'':1,k:1e3,K:1e3,M:1e6,G:1e9}[m[2]];
 }
@@ -555,8 +608,11 @@ function fitView(){
   const r=stage.getBoundingClientRect(), b=bounds();
   if (!b){ view.s=1.2; view.ox=r.width/2-10*GRID*1.2; view.oy=r.height/2-6*GRID*1.2; return; }
   const pad=r.width<640?7:8, w=(b.x1-b.x0+pad)*GRID, h=(b.y1-b.y0+pad)*GRID;
-  view.s=Math.max(0.4,Math.min(2.4,Math.min(r.width/w,(r.height-60)/h)));
-  view.ox=r.width/2-(b.x0+b.x1)/2*GRID*view.s; view.oy=(r.height-40)/2-(b.y0+b.y1)/2*GRID*view.s;
+  // keep clear of the explanation card: beside it on wide screens, below it on phones
+  const card = infoEl.style.display==='flex' && !infoEl.classList.contains('mini'), wide=r.width>760;
+  const inf = card&&wide ? infoEl.offsetWidth+16 : 0, top = card&&!wide ? Math.max(0,infoEl.offsetTop+infoEl.offsetHeight-40) : 0;
+  view.s=Math.max(0.3,Math.min(2.4,Math.min((r.width-inf)/w,(r.height-60-top)/h)));
+  view.ox=inf+(r.width-inf)/2-(b.x0+b.x1)/2*GRID*view.s; view.oy=top+(r.height-40-top)/2-(b.y0+b.y1)/2*GRID*view.s;
 }
 function zoomAt(f,sx,sy){ const ns=Math.max(0.3,Math.min(4,view.s*f)); f=ns/view.s; view.ox=sx-(sx-view.ox)*f; view.oy=sy-(sy-view.oy)*f; view.s=ns; }
 
@@ -620,6 +676,8 @@ function drawComp(c){
       if (c.mode==='dc'){ ctx.fillText('+',dx*8,dy*8); ctx.fillText('−',-dx*8,-dy*8); }
       else { ctx.lineWidth=1.8; ctx.beginPath();
         if (c.mode==='ac') for(let i=0;i<=20;i++){ const x=-9+i*0.9, y=-Math.sin(i/20*Math.PI*2)*5; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+        else if (c.mode==='tri'){ ctx.moveTo(-9,0);ctx.lineTo(-4.5,-5);ctx.lineTo(4.5,5);ctx.lineTo(9,0); }
+        else if (c.mode==='saw'){ ctx.moveTo(-9,5);ctx.lineTo(0,-5);ctx.lineTo(0,5);ctx.lineTo(9,-5); }
         else { ctx.moveTo(-9,4);ctx.lineTo(-9,-5);ctx.lineTo(0,-5);ctx.lineTo(0,4);ctx.lineTo(9,4);ctx.lineTo(9,-5); }
         ctx.stroke(); ctx.font='bold 11px ui-monospace,monospace'; ctx.fillText('+', dx*26-dy*10, dy*26+dx*10); }
       break; }
@@ -679,6 +737,14 @@ function drawComp(c){
       ctx.fillStyle='#141a21'; ctx.strokeStyle=BODY; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-26,-28); ctx.lineTo(26,0); ctx.lineTo(-26,28); ctx.closePath(); ctx.fill(); ctx.stroke();
       utext(c,'−',-19,-20,'bold 14px ui-monospace,monospace','#e8ecf1'); utext(c,'+',-19,20,'bold 14px ui-monospace,monospace','#e8ecf1');
       utext(c,'358',-6,0,'9px ui-monospace,monospace','#8e98a6'); break; }
+    case 'AVO': {
+      ctx.shadowBlur=0; pinLead(c,0,-20,26); pinLead(c,1,20,26);
+      if (sel){ ctx.shadowColor='#f5b83d'; ctx.shadowBlur=16; }
+      ctx.fillStyle='#1d2630'; ctx.strokeStyle='#f5b83d'; ctx.lineWidth=2.2; ctx.beginPath(); ctx.roundRect(-44,-30,88,56,8); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle='#0a1a11'; ctx.beginPath(); ctx.roundRect(-38,-24,76,30,4); ctx.fill();
+      utext(c, c.disp||'—', 0,-9,'bold 14px ui-monospace,monospace','#7cffb2');
+      utext(c,'COM',-20,17,'8px ui-monospace,monospace','#8e98a6'); utext(c,'+',20,17,'bold 11px ui-monospace,monospace','#ff6b6b');
+      utext(c,MLAB[c.mm]||'',0,17,'bold 10px ui-monospace,monospace','#f5b83d'); break; }
     case 'T555': case 'RELAY': {
       const P=DEF[T].pins;
       P.forEach((p,i)=>{ const x=p[0]*GRID, y=p[1]*GRID; pinLead(c,i, Math.max(-32,Math.min(32,x)), Math.max(-48,Math.min(48,y))); });
@@ -706,7 +772,8 @@ function compText(c){
   const T=c.type, D=DEF[T];
   switch(T){
     case 'G': case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': case 'NOT': case 'REG': case 'T555': case 'OPAMP': case 'LM35': case 'RAIL': return '';
-    case 'V': return fmt(c.value,'V')+(c.mode!=='dc'?' '+fmt(c.freq,'Hz'):'');
+    case 'V': return c.mode==='dc' ? fmt(c.value,'V') : '±'+fmt(c.value,'V')+(c.off?(c.off>0?' +':' ')+fmt(c.off,'V'):'')+' '+fmt(c.freq,'Hz');
+    case 'AVO': return '';
     case 'SW': return c.on?'مغلق':'مفتوح';
     case 'POT': return fmt(c.value,'Ω')+' · '+Math.round(c.pos*100)+'%';
     case 'LDR': return fmt(ldrR(c),'Ω')+' · '+fmt(c.lux,'lx');
@@ -921,6 +988,7 @@ const ICONS={
   L:'<path d="M1 14h3a2.5 2.5 0 0 1 5 0a2.5 2.5 0 0 1 5 0a2.5 2.5 0 0 1 5 0a2.5 2.5 0 0 1 5 0"/>',
   V:'<circle cx="13" cy="12" r="7"/><path d="M1 12h5M20 12h5M10 12h6M13 9v6"/>',
   G:'<path d="M13 2v9M6 11h14M9 15h8M11.5 19h3"/>',
+  AVO:'<rect x="5" y="2" width="16" height="17" rx="2.5"/><rect x="8" y="5" width="10" height="5" rx="1"/><path d="M10 19v4M16 19v4"/>',
 };
 const icon=(t,sz=26)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 26 24" fill="none" stroke="#e8ecf1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[t]}</svg>`;
 const bar=document.getElementById('bar'), ghost=document.getElementById('ghost'), drawer=document.getElementById('drawer');
@@ -963,7 +1031,7 @@ function placeFrom(b,t,fromDrawer){
     document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
   });
 }
-for (const t of ['R','C','L','V','G']){
+for (const t of ['R','C','L','V','G','AVO']){
   const b=document.createElement('button'); b.className='ib'; b.dataset.type=t; b.title=DEF[t].name; b.innerHTML=icon(t); bar.appendChild(b);
   placeFrom(b,t,false);
 }
@@ -1066,15 +1134,17 @@ function renderCtx(){
     const c=selected.c, T=DEF[c.type], M=T.meas;
     h+=`<span class="nm">${c.label}</span>`;
     if (c.type==='SW') h+=`<button class="ib ${c.on?'on':''}" id="swT" title="فتح / إغلاق القاطع (أو اضغط عليه مرة ثانية)">${c.on?'مغلق ⏻':'مفتوح ⏻'}</button>`;
+    if (c.type==='AVO') h+=`<select id="mmIn" title="وضع القياس">${[['V','V⎓ جهد مستمر'],['VAC','V~ جهد متناوب (RMS)'],['A','A⎓ تيار مستمر'],['AAC','A~ تيار متناوب (RMS)'],['R','Ω مقاومة'],['F','Hz تردد']].map(([k,n])=>`<option value="${k}"${k===c.mm?' selected':''}>${n}</option>`).join('')}</select>`;
     if (T.lim){
       const sp=splitSI(c.value);
+      if (GATES.has(c.type)) h+=`<span class="nm" title="تأخير الانتشار: الزمن بين تغيّر الدخل وتغيّر الخرج">tpd</span>`;
       h+=`<canvas id="knob" class="knob" width="88" height="88" title="دوّر لتغيير القيمة: دائرة صغيرة = سريع، دائرة كبيرة = دقيق"></canvas>`;
       h+=`<span class="valbox"><input id="valIn" inputmode="decimal" value="${sp.m}" title="الرقم"><select id="preIn" title="البادئة">${PREFIXES.map(([k,s])=>`<option value="${k}"${k===sp.k?' selected':''}>${s||'·'}</option>`).join('')}</select><span class="unit">${T.unit}</span></span>`;
       h+=`<span class="speedsel" title="سرعة التغيير">${['دقيق','عادي','سريع'].map((n,i)=>`<button class="sp ${knobSpeed===i?'on':''}" data-s="${i}">${n}</button>`).join('')}</span>`;
     }
     if (c.type==='V'){
-      h+=`<select id="modeIn"><option value="dc"${c.mode==='dc'?' selected':''}>DC</option><option value="ac"${c.mode==='ac'?' selected':''}>AC ~</option><option value="sq"${c.mode==='sq'?' selected':''}>⊓ مربعة</option></select>`;
-      if (c.mode!=='dc') h+=`<input id="freqIn" value="${fmt(c.freq,'Hz').replace(' ','')}" title="التردد">`;
+      h+=`<select id="modeIn"><option value="dc"${c.mode==='dc'?' selected':''}>DC</option><option value="ac"${c.mode==='ac'?' selected':''}>AC ~</option><option value="sq"${c.mode==='sq'?' selected':''}>⊓ مربعة</option><option value="tri"${c.mode==='tri'?' selected':''}>⋀ مثلثية</option><option value="saw"${c.mode==='saw'?' selected':''}>⩘ سن منشار</option></select>`;
+      if (c.mode!=='dc') h+=`<input id="freqIn" value="${fmt(c.freq,'Hz').replace(' ','')}" title="التردد"><input id="offIn" value="${fmt(c.off||0,'V').replace(' ','')}" title="إزاحة DC (تُضاف للموجة)">`;
     }
     if (c.type==='REG') h+=`<select id="regIn" title="جهد الخرج">${[5,6,8,9,12,15].map(v=>`<option value="${v}"${v===c.value?' selected':''}>78${String(v).padStart(2,'0')} → ${v}V</option>`).join('')}</select>`;
     if (c.type==='LED') h+=`<select id="ledIn" title="اللون">${Object.entries(LEDC).map(([k,v])=>`<option value="${k}"${k===c.color?' selected':''}>${v[2]}</option>`).join('')}</select>`;
@@ -1103,6 +1173,8 @@ function renderCtx(){
   if (q('valIn')) setupValueEditor(c);
   if (q('modeIn')) q('modeIn').onchange=()=>{ c.mode=q('modeIn').value; save(); renderCtx(); };
   if (q('swT')) q('swT').onclick=()=>toggleSwitch(c);
+  if (q('mmIn')) q('mmIn').onchange=()=>{ c.mm=q('mmIn').value; c.st=newState(); c.disp='…'; dirty=true; save(); };
+  if (q('offIn')) q('offIn').onchange=()=>{ const v=parseSI(q('offIn').value.replace('−','-')); if (isFinite(v)){ c.off=v; save(); } q('offIn').value=fmt(c.off||0,'V').replace(' ',''); };
   if (q('regIn')) q('regIn').onchange=()=>{ c.value=+q('regIn').value; save(); };
   if (q('ledIn')) q('ledIn').onchange=()=>{ c.color=q('ledIn').value; save(); };
   if (q('rngIn')){ const r=q('rngIn'), out=q('rngV');
@@ -1132,7 +1204,8 @@ const SCOPE_N=480, DIVS=4;
 const axisState={};            // unit -> {lo,hi,step}
 let scopeCursor=null;          // x in css px, or null
 let scopeRight=null, scopeZoom=1, scopeLay=null, scopePan=null;   // scopeRight=null -> live
-const HIST=30000;
+const HIST=120000;            // samples per trace (one per simulation step)
+let scopeMode='time';         // 'time' | 'freq' (spectrum)
 function probeValue(p){
   if (p.ti!==undefined) return termV(p.c,p.ti);
   const e=p.c.e, M=DEF[p.c.type].meas; if (!e||!M) return 0;
@@ -1146,12 +1219,13 @@ const UNIT={V:'V',I:'A',R:'Ω'};
 const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${pinName(p.c,p.ti)})` : `${p.kind==='I'?'I':p.kind}(${p.c.label})`;
 function renderChips(){
   scopeWrap.style.display = probes.length ? 'flex' : 'none';
-  chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
-    + `<span class="hint" id="sT"></span><span class="sbtns"><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
+  chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><small class="pf" id="pf${i}"></small><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
+    + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
   chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
-  scopeBtn('sZi',()=>{ scopeZoom=Math.max(0.05,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('sZi',()=>{ scopeZoom=Math.max(0.02,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
   scopeBtn('sZo',()=>{ scopeZoom=Math.min(40,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
   scopeBtn('scopeLive',()=>{ scopeRight=null; });
+  chips.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ scopeMode=b.dataset.m; renderChips(); });
   resize();
 }
 function niceStep(raw){
@@ -1180,30 +1254,83 @@ function axisFmt(ax, unit){
   const s=ax.step/mul; let d=0; while (d<4 && Math.abs(Math.round(s*10**d)-s*10**d)>1e-6) d++;
   return {title:pre+unit, f:v=>{ const r=(v/mul).toFixed(d); return r==='-0'||/^-0\.0+$/.test(r)?r.slice(1):r; }};
 }
+function fft(re,im){
+  const n=re.length;
+  for (let i=1,j=0;i<n;i++){ let bit=n>>1; for (;j&bit;bit>>=1) j^=bit; j^=bit; if (i<j){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; } }
+  for (let len=2;len<=n;len<<=1){
+    const a=-2*Math.PI/len, wr=Math.cos(a), wi=Math.sin(a), h=len>>1;
+    for (let i=0;i<n;i+=len){ let cr=1,ci=0;
+      for (let k=0;k<h;k++){ const p=i+k, q=p+h, xr=re[q]*cr-im[q]*ci, xi=re[q]*ci+im[q]*cr;
+        re[q]=re[p]-xr; im[q]=im[p]-xi; re[p]+=xr; im[p]+=xi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } }
+  }
+}
+// amplitude spectrum of the visible window (Hann window, uniform resampling)
+function spectrumOf(buf,tL,tR){
+  let j=lb(buf,tL); if (buf.length-j<16) return null;
+  const a=Math.max(tL,buf[j].t), b=Math.min(tR,buf[buf.length-1].t), T=b-a; if (!(T>0)) return null;
+  const N=4096, re=new Float64Array(N), im=new Float64Array(N); let ws=0;
+  for (let i=0;i<N;i++){
+    const t=a+T*i/N; while (j<buf.length-2 && buf[j+1].t<=t) j++;
+    const p=buf[j], q=buf[j+1]||p, f=q.t>p.t?Math.max(0,Math.min(1,(t-p.t)/(q.t-p.t))):0;
+    let v=p.v+(q.v-p.v)*f; if (!isFinite(v)) v=0;
+    const w=0.5-0.5*Math.cos(2*Math.PI*i/N); ws+=w; re[i]=v*w;
+  }
+  fft(re,im);
+  const M=new Float64Array(N/2); for (let k=0;k<N/2;k++) M[k]=Math.hypot(re[k],im[k])/ws*(k?2:1);
+  let kp=0, mp=0; for (let k=2;k<N/2-1;k++) if (M[k]>mp && M[k]>=M[k-1] && M[k]>=M[k+1]){ mp=M[k]; kp=k; }
+  let fp=NaN;
+  if (kp && mp>1e-3*(M[0]+mp)+1e-15){ const A=M[kp-1], B=M[kp], C=M[kp+1], d=A-2*B+C; fp=(kp+(d?0.5*(A-C)/d:0))/T; }
+  return {M, df:1/T, peak:fp, peakA:mp};
+}
+// frequency from rising crossings (with hysteresis) inside the visible window
+function measureF(buf,tL,tR){
+  const j0=lb(buf,tL); let mn=Infinity, mx=-Infinity, j=j0;
+  for (; j<buf.length && buf[j].t<=tR; j++){ const v=buf[j].v; if (isFinite(v)){ if (v<mn) mn=v; if (v>mx) mx=v; } }
+  if (!(mx-mn > 1e-9+1e-3*Math.max(Math.abs(mn),Math.abs(mx)))) return NaN;
+  const up=(mn+mx)/2+(mx-mn)*0.1, dn=(mn+mx)/2-(mx-mn)*0.1; let hi=null, k=0, t0=0, t1=0;
+  for (let i=j0+1;i<j;i++){ const v=buf[i].v, pv=buf[i-1].v; if (!isFinite(v)) continue;
+    if (hi===null) hi=v>up;
+    else if (!hi && v>up){ hi=true; k++; const tc=buf[i-1].t+(up-pv)/((v-pv)||1)*(buf[i].t-buf[i-1].t); if (k===1) t0=tc; t1=tc; }
+    else if (hi && v<dn) hi=false; }
+  return k>=2 && t1>t0 ? (k-1)/(t1-t0) : NaN;
+}
+const niceCeil=x=>{ const st=niceStep(x/5); return Math.ceil(x/st-1e-9)*st; };
+let pfT=0;
 function drawScope(){
   if (!probes.length) return;
   const w=scope.clientWidth, h=scope.clientHeight; if (!w||!h) return;
   if (scope.width!==Math.round(w*dpr) || scope.height!==Math.round(h*dpr)){ scope.width=Math.round(w*dpr); scope.height=Math.round(h*dpr); }
   const g=scope.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
   g.fillStyle='#0d1116'; g.fillRect(0,0,w,h);
-  // units in order of appearance -> axes (1st left, 2nd right, 3rd outer left)
+  const FQ = scopeMode==='freq';
   const units=[...new Set(probes.map(p=>p.kind))];
   const AXW=50, side=units.map((u,i)=>i===1?'R':'L');
   const nL=side.filter(s=>s==='L').length, nR=side.filter(s=>s==='R').length;
   const X0=AXW*nL+6, X1=w-AXW*Math.max(nR,0)-(nR?6:14), Y0=10, Y1=h-24, PW=X1-X0, PH=Y1-Y0;
-  // time window
+  // time window (in frequency mode it is the stretch of signal that is analysed)
   let tNow=0; probes.forEach(p=>{ if (p.buf.length) tNow=Math.max(tNow,p.buf[p.buf.length-1].t); });
   const span=speed*SCOPE_N/60*scopeZoom; let tR=scopeRight===null?tNow:Math.min(scopeRight,tNow); const tL=tR-span; tNow=tR;
   scopeLay={X0,X1,PW,span,tR};
   document.getElementById('scopeLive').style.display = scopeRight===null ? 'none' : 'inline-flex';
-  const xt=t=>X0+(t-tL)/span*PW;
-  // axes ranges
+  let specs=null, Fx=1, dfMin=Infinity;
+  if (FQ){
+    specs=probes.map(p=>spectrumOf(p.buf,tL,tR));
+    let fTop=0, fMax=Infinity;
+    specs.forEach(sp=>{ if (!sp) return; dfMin=Math.min(dfMin,sp.df); fMax=Math.min(fMax,sp.M.length*sp.df);
+      let mx=0; for (let k=1;k<sp.M.length;k++) mx=Math.max(mx,sp.M[k]);
+      let kk=1; for (let k=1;k<sp.M.length;k++) if (sp.M[k]>mx*0.03) kk=k; fTop=Math.max(fTop,(kk+3)*sp.df); });
+    if (!isFinite(dfMin)) dfMin=1;
+    Fx=niceCeil(Math.min(isFinite(fMax)?fMax:1e9, Math.max(fTop*1.15, dfMin*12)));
+  }
+  const xt = FQ ? f=>X0+f/Fx*PW : t=>X0+(t-tL)/span*PW;
+  // vertical axes, one per unit
   const axes={};
   units.forEach(u=>{
     let lo=Infinity, hi=-Infinity;
-    probes.filter(p=>p.kind===u).forEach(p=>p.buf.forEach(q=>{ if (q.t>=tL && q.t<=tR && isFinite(q.v)){ lo=Math.min(lo,q.v); hi=Math.max(hi,q.v);} }));
+    if (FQ){ lo=0; hi=0; probes.forEach((p,i)=>{ const sp=specs[i]; if (p.kind!==u||!sp) return; for (let k=0;k*sp.df<=Fx && k<sp.M.length;k++) hi=Math.max(hi,sp.M[k]); }); }
+    else probes.filter(p=>p.kind===u).forEach(p=>{ const b=p.buf; for (let j=Math.max(0,lb(b,tL)-1); j<b.length && b[j].t<=tR; j++){ const v=b[j].v; if (isFinite(v)){ if (v<lo) lo=v; if (v>hi) hi=v; } } });
     if (u==='R' && isFinite(lo)) lo=Math.min(lo,0);
-    const ax=axisFor(u,lo,hi); axes[u]={...ax, ...axisFmt(ax, UNIT[u])};
+    const ax=axisFor((FQ?'f':'')+u,lo,hi); axes[u]={...ax, ...axisFmt(ax, UNIT[u])};
   });
   const yv=(u,v)=>Y1-(v-axes[u].lo)/(axes[u].hi-axes[u].lo)*PH;
   // plot frame + grid
@@ -1214,56 +1341,68 @@ function drawScope(){
     g.strokeStyle=i===0||i===DIVS?'#2b333e':'#1b222b'; g.beginPath(); g.moveTo(X0,y); g.lineTo(X1,y); g.stroke();
     for (let k=1;k<5 && i<DIVS;k++){ const yy=Math.round(Y0+PH*(i+k/5)/DIVS)+0.5; g.strokeStyle='#141a21'; g.beginPath(); g.moveTo(X0,yy); g.lineTo(X0+5,yy); g.moveTo(X1-5,yy); g.lineTo(X1,yy); g.stroke(); }
   }
-  // zero line of the first axis if visible
-  const u0=units[0]; if (axes[u0].lo<0 && axes[u0].hi>0){ const y=Math.round(yv(u0,0))+0.5; g.strokeStyle='#3a4451'; g.setLineDash([3,3]); g.beginPath(); g.moveTo(X0,y); g.lineTo(X1,y); g.stroke(); g.setLineDash([]); }
-  // time gridlines
-  const tstep=niceStep(span/7);
+  const u0=units[0]; if (!FQ && axes[u0].lo<0 && axes[u0].hi>0){ const y=Math.round(yv(u0,0))+0.5; g.strokeStyle='#3a4451'; g.setLineDash([3,3]); g.beginPath(); g.moveTo(X0,y); g.lineTo(X1,y); g.stroke(); g.setLineDash([]); }
+  // horizontal gridlines: time or frequency
   g.font='10.5px ui-monospace,monospace'; g.direction='ltr'; g.textBaseline='top'; g.textAlign='center';
-  for (let t=Math.ceil(tL/tstep)*tstep; t<=tNow+1e-12; t+=tstep){
-    if (t<0) continue;
-    const x=Math.round(xt(t))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke();
-    g.fillStyle='#6b7583'; g.fillText(fmt(t,'s'), x, Y1+5);
+  if (FQ){ const fs=niceStep(Fx/6);
+    for (let f=0; f<=Fx+1e-9; f+=fs){ const x=Math.round(xt(f))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.fillStyle='#6b7583'; g.fillText(fmt(f,'Hz'), Math.min(x,X1-18), Y1+5); }
+  } else { const tstep=niceStep(span/7);
+    for (let t=Math.ceil(tL/tstep)*tstep; t<=tNow+1e-12; t+=tstep){ if (t<0) continue;
+      const x=Math.round(xt(t))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.fillStyle='#6b7583'; g.fillText(fmt(t,'s'), x, Y1+5); }
   }
-  // axis labels
   let li=0, ri=0;
   units.forEach((u,i)=>{
     const ax=axes[u], tr=probes.filter(p=>p.kind===u), col=tr.length===1?tr[0].col:'#c9d1db';
     const left=side[i]==='L', xa = left ? X0-6-AXW*(li++) : X1+6+AXW*(ri++);
     g.fillStyle=col; g.textBaseline='middle'; g.textAlign=left?'right':'left'; g.font='12px ui-monospace,monospace';
     for (let k=0;k<=DIVS;k++){ const v=ax.lo+k*ax.step, y=yv(u,v); if (k===DIVS && y<Y0+1) { g.fillText(ax.f(v), xa, y+5); } else g.fillText(ax.f(v), xa, y); }
-    // unit title, on its own at the outer edge
     g.save(); g.translate(left? xa-AXW+12 : xa+AXW-12, Y0+PH/2); g.rotate(-Math.PI/2);
     g.textAlign='center'; g.font='bold 12px ui-monospace,monospace'; g.fillText(ax.title,0,0); g.restore();
-    // coloured axis spine
     g.strokeStyle=col+'aa'; g.lineWidth=2; g.beginPath(); const xs=left?X0-AXW*(li-1)-0.5:X1+AXW*(ri-1)+0.5; g.moveTo(xs,Y0); g.lineTo(xs,Y1); g.stroke(); g.lineWidth=1;
   });
   // traces
   g.save(); g.beginPath(); g.rect(X0,Y0,PW,PH); g.clip();
-  probes.forEach(p=>{
+  probes.forEach((p,pi)=>{
+    g.strokeStyle=p.col; g.lineWidth=2.2; g.lineJoin='round'; g.beginPath();
+    if (FQ){ const sp=specs[pi]; if (!sp) return;
+      for (let k=0;k<sp.M.length && k*sp.df<=Fx*1.01;k++){ const X=xt(k*sp.df), Y=yv(p.kind,sp.M[k]); k?g.lineTo(X,Y):g.moveTo(X,Y); }
+      g.stroke(); g.lineTo(xt(Math.min(Fx,(sp.M.length-1)*sp.df)),Y1); g.lineTo(X0,Y1); g.closePath(); g.fillStyle=p.col+'22'; g.fill(); return; }
     const buf=p.buf; if (buf.length<2) return;
-    g.strokeStyle=p.col; g.lineWidth=2.2; g.lineJoin='round';
-    g.beginPath(); let pen=false;
     let j0=lb(buf,tL)-1; if (j0<0) j0=0;
-    for (let j=j0;j<buf.length;j++){ const q=buf[j]; if (q.t>tR) { if (pen){ g.lineTo(xt(q.t),yv(p.kind,q.v)); } break; } if (!isFinite(q.v)){ pen=false; continue; } const X=xt(q.t), Y=yv(p.kind,q.v); pen?g.lineTo(X,Y):g.moveTo(X,Y); pen=true; }
-    g.stroke(); g.shadowBlur=0;
+    const j1=Math.min(buf.length-1, lb(buf,tR)), dense=(j1-j0)>PW*3;
+    let pen=false, cx=null, mn=0, mx=0;
+    for (let j=j0;j<=j1;j++){
+      const q=buf[j]; if (!isFinite(q.v)){ pen=false; cx=null; continue; }
+      const X=xt(q.t), Y=yv(p.kind,q.v);
+      if (!dense){ pen?g.lineTo(X,Y):g.moveTo(X,Y); pen=true; continue; }
+      const col=Math.floor(X);   // many samples per pixel: draw the min..max band of each column
+      if (col!==cx){ if (cx!==null){ g.lineTo(cx,mn); g.lineTo(cx,mx); } if (!pen){ g.moveTo(X,Y); pen=true; } else g.lineTo(X,Y); cx=col; mn=mx=Y; }
+      else { if (Y<mn) mn=Y; if (Y>mx) mx=Y; }
+    }
+    if (dense && cx!==null){ g.lineTo(cx,mn); g.lineTo(cx,mx); }
+    g.stroke();
   });
   g.restore();
-  // values: live, or at the reading cursor (shown in the legend above, never floating over the traces)
-  let tc=null;
-  if (scopeCursor!==null && scopeCursor>=X0 && scopeCursor<=X1) tc=tL+(scopeCursor-X0)/PW*span;
+  // readouts (in the legend, never floating over the traces)
+  let cur=null;
+  if (scopeCursor!==null && scopeCursor>=X0 && scopeCursor<=X1) cur = FQ ? (scopeCursor-X0)/PW*Fx : tL+(scopeCursor-X0)/PW*span;
   const at=(b,t)=>{ const j=lb(b,t); if (j<=0||j>=b.length) return j>=b.length&&b.length?b[b.length-1].v:NaN; const a=b[j-1], c=b[j], f=(t-a.t)/((c.t-a.t)||1); return a.v+(c.v-a.v)*f; };
+  const now=performance.now(), upd=now-pfT>250; if (upd) pfT=now;
   probes.forEach((p,i)=>{
-    const el=document.getElementById('pv'+i); if (!el) return;
-    const v = p.buf.length ? at(p.buf, tc ?? tR) : NaN;
+    const el=document.getElementById('pv'+i), pf=document.getElementById('pf'+i); if (!el) return;
+    let v;
+    if (FQ){ const sp=specs[i]; v = !sp ? NaN : cur!==null ? sp.M[Math.min(sp.M.length-1,Math.round(cur/sp.df))] : sp.peakA;
+      if (pf && upd) pf.textContent = sp && isFinite(sp.peak) ? '▲ '+fmt(sp.peak,'Hz') : ''; }
+    else { v = p.buf.length ? at(p.buf, cur ?? tR) : NaN;
+      if (pf && upd){ const f=measureF(p.buf,tL,tR); pf.textContent = isFinite(f) ? 'f '+fmt(f,'Hz') : ''; } }
     el.textContent = isFinite(v) ? fmt(v,UNIT[p.kind]) : '—';
-    if (tc!==null && isFinite(v)){ const Y=yv(p.kind,v), x=Math.round(scopeCursor)+0.5; g.fillStyle='#0b0e12'; g.beginPath(); g.arc(x,Y,5.5,0,Math.PI*2); g.fill(); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill(); }
+    if (cur!==null && isFinite(v)){ const Y=yv(p.kind,v), x=Math.round(scopeCursor)+0.5; g.fillStyle='#0b0e12'; g.beginPath(); g.arc(x,Y,5.5,0,Math.PI*2); g.fill(); g.fillStyle=p.col; g.beginPath(); g.arc(x,Y,4,0,Math.PI*2); g.fill(); }
   });
-  const tEl=document.getElementById('sT'); if (tEl) tEl.textContent = 't = '+fmt(tc ?? tR,'s');
-  if (tc!==null){
+  const tEl=document.getElementById('sT'); if (tEl) tEl.textContent = FQ ? 'Δf = '+fmt(dfMin,'Hz') : 't = '+fmt(cur ?? tR,'s');
+  if (cur!==null){
     const x=Math.round(scopeCursor)+0.5;
     g.strokeStyle='#e8ecf180'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.setLineDash([]);
-    // time tag sits on the time axis, below the plot
-    g.font='11px ui-monospace,monospace'; const lab=fmt(tc,'s'), tw=g.measureText(lab).width+12;
+    g.font='11px ui-monospace,monospace'; const lab=fmt(cur,FQ?'Hz':'s'), tw=g.measureText(lab).width+12;
     g.fillStyle='#e8ecf1'; g.beginPath(); g.roundRect(x-tw/2, Y1+3, tw, 17, 4); g.fill();
     g.fillStyle='#0b0e12'; g.textAlign='center'; g.textBaseline='top'; g.fillText(lab, x, Y1+6);
   }
@@ -1277,20 +1416,29 @@ function setRight(t){
   scopeRight = t>=now-1e-12 ? null : Math.max(min,t);
 }
 // drag left/right on the scope = scroll through time; wheel = zoom time; hover/tap = reading cursor
-scope.addEventListener('pointerdown',e=>{ scope.setPointerCapture(e.pointerId); const r=scope.getBoundingClientRect(); scopeCursor=e.clientX-r.left; scopePan={x:e.clientX, tR:scopeLay?scopeLay.tR:0, moved:false}; });
+const sPtr=new Map(); let sPinch=null;
+scope.addEventListener('pointerdown',e=>{ scope.setPointerCapture(e.pointerId); const r=scope.getBoundingClientRect(); sPtr.set(e.pointerId,e.clientX);
+  if (sPtr.size===2 && scopeLay){ const [a,b]=[...sPtr.values()], fx=Math.max(0,Math.min(1,((a+b)/2-r.left-scopeLay.X0)/scopeLay.PW));
+    sPinch={d:Math.max(24,Math.abs(a-b)), z:scopeZoom, fx, tAt:scopeLay.tR-scopeLay.span*(1-fx), live:scopeRight===null}; scopePan=null; scopeCursor=null; return; }
+  scopeCursor=e.clientX-r.left; scopePan={x:e.clientX, tR:scopeLay?scopeLay.tR:0, moved:false}; });
 scope.addEventListener('pointermove',e=>{
   const r=scope.getBoundingClientRect();
+  if (sPtr.has(e.pointerId)) sPtr.set(e.pointerId,e.clientX);
+  if (sPinch){ if (sPtr.size===2){ const [a,b]=[...sPtr.values()], d=Math.max(24,Math.abs(a-b));
+      scopeZoom=Math.max(0.02,Math.min(40,sPinch.z*sPinch.d/d));
+      if (!sPinch.live) setRight(sPinch.tAt+speed*SCOPE_N/60*scopeZoom*(1-sPinch.fx)); }
+    return; }
   if (scopePan && scopeLay){ const dx=e.clientX-scopePan.x; if (Math.abs(dx)>3) scopePan.moved=true; if (scopePan.moved){ setRight(scopePan.tR - dx/scopeLay.PW*scopeLay.span); scope.style.cursor='grabbing'; } }
   scopeCursor=e.clientX-r.left;
 });
-const endPan=()=>{ scopePan=null; scope.style.cursor='crosshair'; };
+const endPan=e=>{ sPtr.delete(e.pointerId); if (sPinch){ if (sPtr.size<2) sPinch=null; scopePan=null; return; } scopePan=null; scope.style.cursor='crosshair'; };
 scope.addEventListener('pointerup',endPan); scope.addEventListener('pointercancel',endPan);
 scope.addEventListener('pointerleave',()=>{ if (!scopePan) scopeCursor=null; });
 scope.addEventListener('wheel',e=>{
   e.preventDefault(); if (!scopeLay) return;
   if (Math.abs(e.deltaX)>Math.abs(e.deltaY) || e.shiftKey){ const d=(e.deltaX||e.deltaY); setRight(scopeLay.tR + d/scopeLay.PW*scopeLay.span); return; }
   const r=scope.getBoundingClientRect(), fx=Math.max(0,Math.min(1,(e.clientX-r.left-scopeLay.X0)/scopeLay.PW));
-  const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.05,Math.min(40,scopeZoom*Math.exp(e.deltaY*0.0015)));
+  const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.02,Math.min(40,scopeZoom*Math.exp(e.deltaY*0.0015)));
   const nspan=speed*SCOPE_N/60*nz; scopeZoom=nz;
   if (scopeRight!==null || fx<0.98) setRight(tAt+nspan*(1-fx));
 },{passive:false});
@@ -1313,17 +1461,17 @@ const EX={
     return {speed:0.1, probes:[['V',R2,0],['I',R1]]};
   },
   rc(){
-    const V=compBetween('V',4,10,4,6,5,{mode:'sq',freq:1}), R=compBetween('R',8,6,12,6,1000), C=compBetween('C',16,6,16,10,100e-6), G=addComp('G',4,10,1);
+    const V=compBetween('V',4,10,4,6,2.5,{mode:'sq',freq:1,off:2.5}), R=compBetween('R',8,6,12,6,1000), C=compBetween('C',16,6,16,10,100e-6), G=addComp('G',4,10,1);
     addLink(V,1,R,0); addLink(R,1,C,0); addLink(C,1,V,0); addLink(G,0,V,0);
     return {speed:0.5, probes:[['V',C],['I',R]]};
   },
   rl(){
-    const V=compBetween('V',4,10,4,6,5,{mode:'sq',freq:5}), R=compBetween('R',8,6,12,6,100), L=compBetween('L',16,6,16,10,1), G=addComp('G',4,10,1);
+    const V=compBetween('V',4,10,4,6,2.5,{mode:'sq',freq:5,off:2.5}), R=compBetween('R',8,6,12,6,100), L=compBetween('L',16,6,16,10,1), G=addComp('G',4,10,1);
     addLink(V,1,R,0); addLink(R,1,L,0); addLink(L,1,V,0); addLink(G,0,V,0);
     return {speed:0.1, probes:[['V',L],['I',L]]};
   },
   rlc(){
-    const V=compBetween('V',4,10,4,6,5,{mode:'sq',freq:4}), R=compBetween('R',8,6,12,6,10), L=compBetween('L',12,6,16,6,0.1), C=compBetween('C',20,6,20,10,100e-6), G=addComp('G',4,10,1);
+    const V=compBetween('V',4,10,4,6,2.5,{mode:'sq',freq:4,off:2.5}), R=compBetween('R',8,6,12,6,10), L=compBetween('L',12,6,16,6,0.1), C=compBetween('C',20,6,20,10,100e-6), G=addComp('G',4,10,1);
     addLink(V,1,R,0); addLink(R,1,L,0); addLink(L,1,C,0); addLink(C,1,V,0); addLink(G,0,V,0);
     return {speed:0.1, probes:[['V',C],['I',L]]};
   },
@@ -1376,17 +1524,95 @@ const EX={
   },
   opamp(){
     const U=addComp('OPAMP',12,8,0), P=addComp('RAIL',12,6,0,9), G1=addComp('G',12,10,1);
-    const V=compBetween('V',6,13,6,9,0.5,{mode:'sq',freq:1}), G2=addComp('G',6,13,1);
+    const V=compBetween('V',6,13,6,9,0.25,{mode:'sq',freq:1,off:0.25}), G2=addComp('G',6,13,1);
     const R2=compBetween('R',10,3,14,3,10000), R1=compBetween('R',4,7,8,7,4700), G3=addComp('G',4,7,2), RL=compBetween('R',18,8,18,12,10000), G4=addComp('G',18,12,1);
     addLink(U,3,P,0); addLink(U,4,G1,0); addLink(V,0,G2,0); addLink(V,1,U,1);
     addLink(R2,0,U,0); addLink(R2,1,U,2); addLink(R1,0,G3,0); addLink(R1,1,U,0); addLink(U,2,RL,0); addLink(RL,1,G4,0);
     return {speed:0.5, probes:[['V',V],['V',U]]};
   },
+  waves(){
+    const pr=[];
+    [['ac',4],['tri',14],['sq',24],['saw',34]].forEach(([m,x])=>{ const V=compBetween('V',x,10,x,6,5,{mode:m,freq:2}), Rr=compBetween('R',x+5,6,x+5,10,1000), G=addComp('G',x,10,1);
+      addLink(V,1,Rr,0); addLink(Rr,1,G,0); addLink(V,0,G,0); pr.push(['V',V]); });
+    return {speed:0.5, probes:pr};
+  },
+  half(){
+    const V=compBetween('V',4,10,4,6,12,{mode:'ac',freq:50}), Rs=compBetween('R',6,6,10,6,10), D=compBetween('D',12,6,16,6), RL=compBetween('R',18,6,18,10,1000);
+    const G1=addComp('G',4,10,1), G2=addComp('G',18,10,1);
+    addLink(V,1,Rs,0); addLink(Rs,1,D,0); addLink(D,1,RL,0); addLink(RL,1,G2,0); addLink(V,0,G1,0);
+    return {speed:0.01, probes:[['V',V],['V',RL]]};
+  },
+  smooth(){
+    const V=compBetween('V',4,10,4,6,12,{mode:'ac',freq:50}), Rs=compBetween('R',6,6,10,6,10), D=compBetween('D',12,6,16,6), RL=compBetween('R',18,6,18,10,1000), C=compBetween('C',22,6,22,10,470e-6);
+    const G1=addComp('G',4,10,1), G2=addComp('G',18,10,1), G3=addComp('G',22,10,1), M=addComp('AVO',29,7,0,0,{mm:'V'});
+    addLink(V,1,Rs,0); addLink(Rs,1,D,0); addLink(D,1,RL,0); addLink(RL,1,G2,0); addLink(V,0,G1,0); addLink(RL,0,C,0); addLink(C,1,G3,0); addLink(M,1,C,0); addLink(M,0,G3,0);
+    return {speed:0.01, probes:[['V',V],['V',C]]};
+  },
+  bridge(){
+    const V=compBetween('V',2,10,2,6,12,{mode:'ac',freq:50}), Rs=compBetween('R',2,1,6,1,2.2);
+    const D1=compBetween('D',6,4,10,4), D3=compBetween('D',10,6,6,6), D2=compBetween('D',6,9,10,9), D4=compBetween('D',10,11,6,11), GN=addComp('G',10,13,1);
+    const C=compBetween('C',14,4,14,8,1000e-6), GC=addComp('G',14,8,1), U=addComp('REG',18,4,0,5), GU=addComp('G',18,6,1);
+    const RL=compBetween('R',24,4,24,8,220), GL=addComp('G',24,8,1), M=addComp('AVO',28,6,0,0,{mm:'V'});
+    addLink(V,1,Rs,0); addLink(Rs,1,D1,0); addLink(Rs,1,D3,1); addLink(V,0,D2,0); addLink(V,0,D4,1);
+    addLink(D1,1,C,0); addLink(D2,1,C,0); addLink(D3,0,GN,0); addLink(D4,0,GN,0); addLink(C,1,GC,0);
+    addLink(C,0,U,0); addLink(U,2,GU,0); addLink(U,1,RL,0); addLink(RL,1,GL,0); addLink(M,1,U,1); addLink(M,0,GL,0);
+    return {speed:0.01, probes:[['V',V],['V',C],['V',U]]};
+  },
+  lowpass(){
+    const V=compBetween('V',4,10,4,6,2.5,{mode:'sq',freq:100,off:2.5}), Rr=compBetween('R',8,6,12,6,1000), C=compBetween('C',14,6,14,10,1e-6);
+    const G1=addComp('G',4,10,1), G2=addComp('G',14,10,1);
+    addLink(V,1,Rr,0); addLink(Rr,1,C,0); addLink(C,1,G2,0); addLink(V,0,G1,0);
+    return {speed:0.01, probes:[['V',V],['V',C]]};
+  },
+  notosc(){
+    const U=addComp('NOT',8,6,0), M=addComp('AVO',14,9,0,0,{mm:'F'}), G=addComp('G',13,13,1);
+    addLink(U,1,U,0); addLink(M,1,U,1); addLink(M,0,G,0);
+    return {speed:1e-3, zoom:0.1, probes:[['V',U]]};
+  },
+  ohm(){
+    const V=compBetween('V',4,10,4,6,9), MA=addComp('AVO',8,8,2,0,{mm:'A'}), Rr=compBetween('R',14,6,14,10,1000), MV=addComp('AVO',19,8,0,0,{mm:'V'});
+    const G1=addComp('G',4,10,1), G2=addComp('G',14,10,1);
+    addLink(V,1,MA,1); addLink(MA,0,Rr,0); addLink(Rr,1,G2,0); addLink(V,0,G1,0); addLink(MV,1,Rr,0); addLink(MV,0,Rr,1);
+    return {speed:0.2, probes:[]};
+  },
   clear(){ return {speed:0.2, probes:[]}; },
 };
+// short explanation shown with each ready-made experiment
+const EXINFO={
+  divider:['مقسم الجهد','المقاومتان على التوالي يمر فيهما نفس التيار I = V/(R1+R2). الجهد على R2 يساوي V·R2/(R1+R2) = 10V × 2k/3k ≈ 6.67V. غيّر أي مقاومة بالقرص وراقب الجهد.'],
+  rc:['شحن وتفريغ مكثفة','منبع مربع (0 ↔ 5V) يشحن المكثفة عبر R ثم يفرّغها. الجهد يصل 63% من قيمته خلال ثابت الزمن τ = R·C = 0.1s، والتيار أكبر ما يكون لحظة التبديل ثم يتناقص.'],
+  rl:['ملف مع مقاومة','الملف يقاوم تغيّر التيار: عند التبديل يقفز الجهد على الملف ثم يتلاشى، بينما التيار يرتفع تدريجياً بثابت زمن τ = L/R = 10ms.'],
+  rlc:['رنين RLC','الطاقة تتبادل بين الملف والمكثفة فتظهر اهتزازات مخمدة بتردد الرنين f = 1/(2π√LC) ≈ 50Hz. بدّل الراسم إلى «تردد» لترى القمة.'],
+  ledsw:['LED مع قاطع','اضغط على القاطع لتفتحه أو تغلقه. المقاومة تحدد تيار الـ LED: I ≈ (5V − 1.9V)/220Ω ≈ 14mA. بدونها يحترق الـ LED.'],
+  zener:['تنظيم الجهد بزينر','الزينر بالاتجاه العكسي يثبت الجهد عند Vz = 5.1V مهما ارتفع الدخل، والمقاومة تتحمل الفرق. بالنصف السالب يعمل كدايود عادي (≈ −0.7V).'],
+  night:['إنارة ليلية','المقاومة الضوئية تكبر مقاومتها بالظلام فيرتفع جهد القاعدة ويشتغل الترانزستور ويضيء الـ LED. اختر الـ LDR وحرّك منزلق الإضاءة نحو الظلام.'],
+  relay:['ريلاي','تيار صغير بالملف (50mA) يحرّك تلامساً ميكانيكياً يبدّل دارة منفصلة: NC موصول بالراحة و NO عند التفعيل. اضغط على القاطع.'],
+  reg:['منظم 7805','يثبت الخرج على 5V طالما الدخل أعلى منه بـ 2V على الأقل. خفّض جهد المنبع تحت 7V وشوف كيف يفقد التنظيم.'],
+  t555:['وامض 555','المكثفة تشحن عبر R1+R2 وتفرغ عبر R2 بين ⅓ و ⅔ جهد التغذية فيتبدل الخرج. التردد f ≈ 1.44/((R1+2R2)·C) ≈ 6.9Hz (الراسم يعرض f تحت كل إشارة).'],
+  and:['بوابة AND','الخرج 1 (5V) فقط إذا كان الدخلان 1. اضغط على القاطعين وجرّب كل الحالات. البوابات تعمل على تغذية 5V ضمنية.'],
+  opamp:['مضخم غير عاكس','الربح = 1 + R2/R1 = 1 + 10k/4.7k ≈ 3.1. الـ LM358 هنا بتغذية واحدة، فالخرج لا ينزل تحت 0V ولا يتجاوز V+ − 1.5V.'],
+  waves:['أشكال الموجات','أربعة منابع بنفس السعة 5V والتردد 2Hz: جيبية، مثلثية، مربعة، سن منشار. بدّل الراسم إلى «تردد»: الجيبية قمة وحيدة، المربعة والمثلثية توافقيات فردية (3f، 5f…)، وسن المنشار كل التوافقيات.'],
+  half:['تقويم نصف موجة','الدايود يمرر النصف الموجب فقط من الموجة الجيبية 50Hz، فيصير الجهد على الحمل نبضات موجبة مع هبوط ≈ 0.7V على الدايود. المقاومة 10Ω تمثل مقاومة ملف المحولة.'],
+  smooth:['التنعيم بمكثفة','المكثفة تشحن عند قمة كل نبضة وتغذي الحمل بين النبضات، فيصير الجهد شبه مستمر مع تموّج صغير. الأفوميتر (V⎓) يقرأ المتوسط. صغّر المكثفة وشوف التموّج يكبر.'],
+  bridge:['من AC إلى DC كاملاً','① قنطرة من 4 دايودات تقلب النصف السالب فيصير التقويم موجة كاملة بتردد 100Hz. ② المكثفة 1000µF تنعّم الجهد. ③ المنظم 7805 يثبت الخرج على 5V، والأفوميتر يقرأ الخرج المستقر.'],
+  lowpass:['مرشح تمرير منخفض RC','تردد القطع fc = 1/(2πRC) ≈ 159Hz. الموجة المربعة 100Hz فيها توافقيات 300 و500 و700Hz… والمرشح يضعفها فتصير الموجة مدوّرة. بدّل الراسم إلى «تردد» وقارن الطيفين.'],
+  notosc:['مهتز ببوابة NOT','خرج NOT موصول بدخلها: كل ما يتبدل الخرج ينقلب الدخل، فتهتز البوابة بتردد f = 1/(2·tpd). البوابات الحقيقية tpd ≈ 10ns، وهنا 100µs ليصير الاهتزاز مرئياً (غيّره من قرص البوابة). الأفوميتر على وضع Hz يقيس التردد.'],
+  ohm:['قانون أوم بالأفوميتر','أفوميتر على وضع A موصول على التوالي يقيس التيار، وآخر على وضع V على التوازي يقيس الجهد: I = V/R = 9V/1kΩ = 9mA. اضغط على أي أفوميتر لتغيير وضعه، وغيّر المقاومة وراقب القراءتين.'],
+};
+let curEx=null;
+const infoEl=document.getElementById('info');
+function showInfo(name,collapsed){
+  const d=name&&EXINFO[name]; if (!d){ infoEl.style.display='none'; return; }
+  infoEl.style.display='flex'; infoEl.classList.toggle('mini',!!collapsed);
+  infoEl.innerHTML = collapsed ? `<button class="ib" id="iOpen" title="عرض الشرح">ℹ ${d[0]}</button>`
+    : `<div class="ihead"><b>${d[0]}</b><button class="ib" id="iClose" title="تصغير">✕</button></div><div>${d[1]}</div>`;
+  const o=document.getElementById('iOpen'), c=document.getElementById('iClose');
+  if (o) o.onclick=()=>showInfo(name,false); if (c) c.onclick=()=>showInfo(name,true);
+}
 function loadExample(name){
   comps=[]; links=[]; probes=[]; counters={}; dirty=true; resetSim(); select(null);
-  const r=EX[name](); build(); setSpeed(r.speed);
+  const r=EX[name](); build(); setSpeed(r.speed); scopeZoom=r.zoom||1; scopeRight=null; scopeMode='time';
+  curEx = name==='clear' ? null : name; showInfo(curEx,false);
   r.probes.forEach(([k,c,ti])=>toggleProbe(k,c,ti));
   select(null); renderChips(); fitView(); save();
   if (!running) togglePlay();
@@ -1397,9 +1623,9 @@ document.getElementById('examples').onchange=e=>{ if (e.target.value){ loadExamp
 let saveT=null;
 function snapshot(){
   return JSON.stringify({
-    comps:comps.map(({id,type,x,y,rot,value,mode,freq,label,pos,lux,temp,on,color})=>({id,type,x,y,rot,value,mode,freq,label,pos,lux,temp,on,color})),
+    comps:comps.map(({id,type,x,y,rot,value,mode,freq,label,pos,lux,temp,on,color,off,mm})=>({id,type,x,y,rot,value,mode,freq,label,pos,lux,temp,on,color,off,mm})),
     links:links.map(l=>[l.c1.id,l.t1,l.c2.id,l.t2]),
-    probes:probes.map(p=>[p.kind,p.c.id,p.ti??null,p.col]), speed, counters});
+    probes:probes.map(p=>[p.kind,p.c.id,p.ti??null,p.col]), speed, counters, ex:curEx});
 }
 const hist=[], redo=[];
 function save(){
@@ -1412,7 +1638,11 @@ function save(){
   },250);
 }
 function restore(d){
-  comps=d.comps.filter(c=>DEF[c.type]).map(c=>({pos:0.5,lux:100,temp:25,on:false,color:'red',...c,st:newState(),phase:0,ph:[]})); const byId=new Map(comps.map(c=>[c.id,c]));
+  comps=d.comps.filter(c=>DEF[c.type]).map(c=>{ const o={pos:0.5,lux:100,temp:25,on:false,color:'red',mm:'V',disp:'',...c,st:newState(),phase:0,ph:[]};
+    if (o.off===undefined){ o.off=0; if (o.type==='V' && o.mode==='sq'){ o.value/=2; o.off=o.value; } }   // old saves: square wave was 0..V
+    if (DEF[o.type].lim && !(o.value>0)) o.value=DEF[o.type].def;
+    return o; });
+  curEx=d.ex||null; showInfo(curEx,true); const byId=new Map(comps.map(c=>[c.id,c]));
   links=d.links.filter(l=>byId.has(l[0])&&byId.has(l[2])).map(l=>({id:0,c1:byId.get(l[0]),t1:l[1],c2:byId.get(l[2]),t2:l[3],phase:0}));
   probes=(d.probes||[]).filter(p=>byId.has(p[1])).map(p=>({kind:p[0],c:byId.get(p[1]),ti:p[2]??undefined,col:p[3],buf:[]}));
   counters=d.counters||{}; nextId=1+Math.max(0,...comps.map(c=>c.id)); if (d.speed) setSpeed(d.speed);
@@ -1435,7 +1665,7 @@ function applySnap(sn){
 function updUndo(){ const u=document.getElementById('bUndo'), r=document.getElementById('bRedo'); if (u) u.disabled=hist.length<2; if (r) r.disabled=!redo.length; }
 
 // ======================= Main loop =======================
-let lastT=performance.now(), uiT=0, lastWarn='';
+let lastT=performance.now(), uiT=0, lastWarn='', stepsUI=0, meterT=0;
 const warnEl=document.getElementById('warn'), clockEl=document.getElementById('clock');
 function frame(ts){
   const dtReal=Math.min(0.05,(ts-lastT)/1000); lastT=ts;
@@ -1443,7 +1673,8 @@ function frame(ts){
   if (running){
     const dt=speed/(60*SUB);
     stepAcc+=speed*dtReal/dt; const steps=Math.min(Math.floor(stepAcc),SUB*4); stepAcc-=Math.floor(stepAcc); if (stepAcc>SUB) stepAcc=0;
-    for (let k=0;k<steps;k++){ step(dt); if (!net.ok) break; }
+    for (let k=0;k<steps;k++){ step(dt); if (!net.ok) break; for (const p of probes) p.buf.push({t:simTime, v:probeValue(p)}); }
+    stepsUI+=steps;
     let vm=0, im=0;
     for (const e of net.elems){ for (const q of e.ip) im=Math.max(im,Math.abs(q||0)); if (e.kind==='V'||e.kind==='RAIL') vm=Math.max(vm,Math.abs(e.c.value)); }
     for (let i=0;i<net.n;i++) vm=Math.max(vm,Math.abs(net.x[i]));
@@ -1451,13 +1682,17 @@ function frame(ts){
     Imax=im>Imax?im:Imax*0.97+im*0.03;
     const k=90*dtReal/Math.max(Imax,1e-12);
     for (const e of net.elems){ if (e.kind==='W') e.l.phase+=e.i*k; else if (TWO_T.has(e.kind)) e.c.phase+=e.i*k; else e.c.ph.forEach((_,p)=>e.c.ph[p]+=(e.ip[p]||0)*k); }
-    for (const p of probes){ p.buf.push({t:simTime, v:probeValue(p)}); if (p.buf.length>HIST) p.buf.splice(0, p.buf.length-HIST); }
+    for (const p of probes) if (p.buf.length>HIST*1.1) p.buf.splice(0, p.buf.length-HIST);
   }
   draw(); drawScope(); placeCtx();
   if (ts-uiT>150){
     uiT=ts; clockEl.textContent='t = '+fmt(simTime,'s');
     const ws=[...net.warns];
     if (!net.ok) ws.push({t:'تعذّر الحل: منبعا جهد على التوازي مباشرة'});
+    let flips=0; comps.forEach(c=>{ if (GATES.has(c.type)){ flips=Math.max(flips,c.st.flips||0); c.st.flips=0; } });
+    if (stepsUI>4 && flips>stepsUI*0.3) ws.push({info:true,t:'البوابة تهتز أسرع من خطوة المحاكاة — خفّض سرعة الزمن ⏱ أو كبّر tpd لترى الاهتزاز'});
+    stepsUI=0;
+    if (ts-meterT>300){ meterT=ts; comps.forEach(c=>{ if (c.type==='AVO') meterTick(c); }); }
     if (net.elems.some(e=>e.ip.some(q=>Math.abs(q||0)>50))) ws.push({t:'⚡ دارة قصر — تيار ضخم جداً'});
     const html=ws.map(w=>`<div class="${w.info?'info':''}">${w.t}</div>`).join('');
     if (html!==lastWarn){ warnEl.innerHTML=html; lastWarn=html; }
