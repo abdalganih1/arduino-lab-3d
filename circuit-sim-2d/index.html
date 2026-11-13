@@ -178,7 +178,7 @@ function freeSpot(c, x, y, rot){
 }
 // touching terminals -> automatic wire (it stays when the parts are pulled apart)
 // pairs of terminals (moved part -> other part) that are close enough to weld
-const WELD = 1.6;   // grid units
+const WELD = 1.01;  // grid units: only pins dropped on the same or the next grid point join
 function nearTerms(c, tol=WELD){
   const res=[];
   terminals(c).forEach((t,ti) => {
@@ -211,11 +211,62 @@ function build(){
   }
   for (const l of links){ const e={kind:'W', l, a:idx.get(tkey(l.c1,l.t1)), b:idx.get(tkey(l.c2,l.t2)), v:0, i:0}; l.e=e; elems.push(e); }
   markBridges(elems, n);
+  routeAll();
   const deg = new Map();
   links.forEach(l => { deg.set(tkey(l.c1,l.t1),(deg.get(tkey(l.c1,l.t1))||0)+1); deg.set(tkey(l.c2,l.t2),(deg.get(tkey(l.c2,l.t2))||0)+1); });
   net = {idx, n, m, elems, warns, deg, x:new Float64Array(n+m), ok:true};
   dirty = false;
 }
+// ---------- wire router: orthogonal paths on grid points, around parts, fewest bends ----------
+function routeAll(){
+  const B=bounds(); if (!B) return;
+  const X0=Math.floor(B.x0)-6, Y0=Math.floor(B.y0)-6, W=Math.ceil(B.x1)+6-X0+1, H=Math.ceil(B.y1)+6-Y0+1;
+  const cell=(x,y)=>(y-Y0)*W+(x-X0);
+  const blk=new Uint8Array(W*H), used=new Float32Array(W*H);
+  for (const c of comps){
+    const f=footprint(c);
+    for (let x=Math.ceil(f.x0-0.25); x<=Math.floor(f.x1+0.25); x++) for (let y=Math.ceil(f.y0-0.25); y<=Math.floor(f.y1+0.25); y++)
+      if (x>f.x0-0.25 && x<f.x1+0.25 && y>f.y0-0.25 && y<f.y1+0.25) blk[cell(x,y)]=1;
+    terminals(c).forEach(t=>{ blk[cell(t[0],t[1])]=2; });   // other parts' pins: never pass through them
+  }
+  for (const l of links){
+    const a=tpos(l.c1,l.t1), b=tpos(l.c2,l.t2);
+    l.path = (a[0]===b[0]&&a[1]===b[1]) ? [a] : (astar(a,b,W,H,X0,Y0,blk,used,cell) || [a,[b[0],a[1]],b]);
+    // mark used cells so later wires prefer not to overlap earlier ones
+    for (let i=0;i<l.path.length-1;i++){ const [x1,y1]=l.path[i], [x2,y2]=l.path[i+1], dx=Math.sign(x2-x1), dy=Math.sign(y2-y1);
+      for (let x=x1,y=y1; ; x+=dx,y+=dy){ used[cell(x,y)]+=1; if (x===x2&&y===y2) break; } }
+  }
+}
+const RD=[[1,0],[0,1],[-1,0],[0,-1]];
+function astar(a,b,W,H,X0,Y0,blk,used,cell){
+  const N=W*H*5, g=new Float32Array(N).fill(Infinity), from=new Int32Array(N).fill(-1);
+  const sx=a[0], sy=a[1], tx=b[0], ty=b[1];
+  const heap=[]; const push=(f,s)=>{ heap.push([f,s]); let i=heap.length-1; while(i>0){ const p=(i-1)>>1; if (heap[p][0]<=heap[i][0]) break; [heap[p],heap[i]]=[heap[i],heap[p]]; i=p; } };
+  const pop=()=>{ const top=heap[0], last=heap.pop(); if (heap.length){ heap[0]=last; let i=0; for(;;){ const l=2*i+1, r=l+1; let m=i; if (l<heap.length&&heap[l][0]<heap[m][0]) m=l; if (r<heap.length&&heap[r][0]<heap[m][0]) m=r; if (m===i) break; [heap[m],heap[i]]=[heap[i],heap[m]]; i=m; } } return top; };
+  const s0=cell(sx,sy)*5+4; g[s0]=0; push(Math.abs(tx-sx)+Math.abs(ty-sy), s0);
+  let goal=-1, guard=0;
+  while (heap.length && guard++<60000){
+    const [,st]=pop(), ci=(st/5)|0, d=st%5, x=ci%W+X0, y=((ci/W)|0)+Y0;
+    if (x===tx && y===ty){ goal=st; break; }
+    const gc=g[st];
+    for (let nd=0;nd<4;nd++){
+      if (d<4 && nd===(d+2)%4) continue;
+      const nx=x+RD[nd][0], ny=y+RD[nd][1];
+      if (nx<X0||ny<Y0||nx>=X0+W||ny>=Y0+H) continue;
+      const nc=cell(nx,ny), isGoal=(nx===tx&&ny===ty);
+      if (blk[nc] && !isGoal) continue;
+      const cost=gc+1+used[nc]*0.8+(d<4&&nd!==d?1.6:0), ns=nc*5+nd;
+      if (cost<g[ns]){ g[ns]=cost; from[ns]=st; push(cost+Math.abs(tx-nx)+Math.abs(ty-ny), ns); }
+    }
+  }
+  if (goal<0) return null;
+  const pts=[]; for (let st=goal; st>=0; st=from[st]){ const ci=(st/5)|0; pts.push([ci%W+X0, ((ci/W)|0)+Y0]); }
+  pts.reverse();
+  const out=[pts[0]];   // keep only the corners
+  for (let i=1;i<pts.length-1;i++){ const p=out[out.length-1], q=pts[i], r=pts[i+1]; if ((q[0]-p[0])*(r[1]-q[1]) !== (q[1]-p[1])*(r[0]-q[0])) out.push(q); }
+  out.push(pts[pts.length-1]); return out;
+}
+function polyLen(path){ let L=0; for (let i=0;i<path.length-1;i++) L+=Math.abs(path[i+1][0]-path[i][0])+Math.abs(path[i+1][1]-path[i][1]); return L; }
 // An element that is a "bridge" (not part of any closed loop) carries exactly 0 A by KCL.
 // The solver's tiny GMIN leakage would otherwise show a few nA there, so we flag them.
 function markBridges(elems, n){
@@ -419,9 +470,9 @@ function draw(){
   // wires: always the shortest path (straight line) between the two connected terminals
   ctx.lineCap='round'; ctx.lineWidth=3;
   for (const l of links){
-    const a=tpos(l.c1,l.t1), b=tpos(l.c2,l.t2);
+    const P=l.path||[tpos(l.c1,l.t1),tpos(l.c2,l.t2)];
     if (selected && selected.l===l){ ctx.shadowColor='#f5b83d'; ctx.shadowBlur=14; }
-    ctx.strokeStyle=vcol(termV(l.c1,l.t1)); ctx.beginPath(); ctx.moveTo(a[0]*GRID,a[1]*GRID); ctx.lineTo(b[0]*GRID,b[1]*GRID); ctx.stroke();
+    ctx.lineJoin='round'; ctx.strokeStyle=vcol(termV(l.c1,l.t1)); ctx.beginPath(); P.forEach((q,i)=>i?ctx.lineTo(q[0]*GRID,q[1]*GRID):ctx.moveTo(q[0]*GRID,q[1]*GRID)); ctx.stroke();
     ctx.shadowBlur=0;
   }
   comps.forEach(drawComp);
@@ -433,7 +484,7 @@ function draw(){
   ctx.fillStyle='#ffd84a';
   for (const e of net.elems){
     if (Math.abs(e.i) < Math.max(1e-9, Imax*0.004)) continue;
-    if (e.kind==='W'){ const a=tpos(e.l.c1,e.l.t1), b=tpos(e.l.c2,e.l.t2); dots(a[0]*GRID,a[1]*GRID,b[0]*GRID,b[1]*GRID,e.l.phase); }
+    if (e.kind==='W'){ const P=e.l.path||[]; let off=0; for (let i=0;i<P.length-1;i++){ const L=(Math.abs(P[i+1][0]-P[i][0])+Math.abs(P[i+1][1]-P[i][1]))*GRID; dots(P[i][0]*GRID,P[i][1]*GRID,P[i+1][0]*GRID,P[i+1][1]*GRID,e.l.phase-off); off+=L; } }
     else { const [a,b]=terminals(e.c); dots(a[0]*GRID,a[1]*GRID,b[0]*GRID,b[1]*GRID,e.c.phase); }
   }
   comps.forEach(compLabel);
@@ -482,6 +533,7 @@ function hitTerm(w){
   let bs=Infinity;
   for (const c of comps) terminals(c).forEach((t,ti)=>{
     const d=Math.hypot(t[0]*GRID-w.x,t[1]*GRID-w.y); if (d>=tol) return;
+    if (comps.some(o=>{ const f=footprint(o); return w.x>f.x0*GRID && w.x<f.x1*GRID && w.y>f.y0*GRID && w.y<f.y1*GRID; })) return;
     const f=footprint(c), sc=d+0.05*Math.hypot((f.x0+f.x1)/2*GRID-w.x,(f.y0+f.y1)/2*GRID-w.y);
     if (sc<bs){ bs=sc; best={c,ti}; }
   });
@@ -495,7 +547,8 @@ function hitComp(w){
   return null;
 }
 function hitLink(w){
-  for (let i=links.length-1;i>=0;i--){ const l=links[i], a=tpos(l.c1,l.t1), b=tpos(l.c2,l.t2); if (distSeg(w.x,w.y,a[0]*GRID,a[1]*GRID,b[0]*GRID,b[1]*GRID)<(touchMode?16:8)/Math.min(view.s,1.4)) return l; }
+  const tol=(touchMode?16:8)/Math.min(view.s,1.4);
+  for (let i=links.length-1;i>=0;i--){ const P=links[i].path||[]; for (let k=0;k<P.length-1;k++) if (distSeg(w.x,w.y,P[k][0]*GRID,P[k][1]*GRID,P[k+1][0]*GRID,P[k+1][1]*GRID)<tol) return links[i]; }
   return null;
 }
 
@@ -532,7 +585,7 @@ cv.addEventListener('pointermove', e=>{
   else if (drag.type==='wire'){ drag.wx=w.x; drag.wy=w.y; hoverT=hitTerm(w); }
   else if (drag.type==='move'){
     const g=snap(w), nx=g.x-drag.dx, ny=g.y-drag.dy, c=drag.c;
-    if ((nx!==c.x||ny!==c.y) && canPlace(c,nx,ny,c.rot)){ c.x=nx; c.y=ny; autoLink(c); dirty=true; }
+    if ((nx!==c.x||ny!==c.y) && canPlace(c,nx,ny,c.rot)){ c.x=nx; c.y=ny; dirty=true; }   // no joining while dragging
     drag.weld = nearTerms(c);
     cv.style.cursor='grabbing';
   }
@@ -734,7 +787,7 @@ function placeCtx(){ return; // toolbar is docked at the bottom, above the parts
   let gx,gy;
   if (selected.kind==='comp'){ const f=footprint(selected.c); gx=(f.x0+f.x1)/2; gy=f.y0; }
   else if (selected.kind==='node'){ [gx,gy]=tpos(selected.c,selected.ti); }
-  else { const a=tpos(selected.l.c1,selected.l.t1), b=tpos(selected.l.c2,selected.l.t2); gx=(a[0]+b[0])/2; gy=Math.min(a[1],b[1]); }
+  else { const P=selected.l.path||[[0,0]], q=P[Math.floor(P.length/2)]; gx=q[0]; gy=q[1]; }
   const s=toScreen(gx,gy), r=stage.getBoundingClientRect(), w=ctxEl.offsetWidth;
   let top=s.y-26; if (top<ctxEl.offsetHeight+6) top=s.y+90+ctxEl.offsetHeight;
   ctxEl.style.left=Math.max(w/2+6,Math.min(r.width-w/2-6,s.x))+'px'; ctxEl.style.top=top+'px';
