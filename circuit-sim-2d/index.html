@@ -40,7 +40,8 @@ button,select,input{font:inherit;color:inherit}
 #ctx .ib{min-width:36px;height:36px;font-weight:700;font-size:13px}
 #ctx .ib.pv{color:#3ddc84}#ctx .ib.pi{color:#ffd84a}#ctx .ib.pr{color:#c792ea}
 #ctx .ib.pv.on{background:#3ddc84;color:#04220f}#ctx .ib.pi.on{background:#ffd84a;color:#2a2100}#ctx .ib.pr.on{background:#c792ea;color:#1d0b2b}
-#ctx .knob{width:44px;height:44px;cursor:grab;touch-action:none;flex:none}
+#dial{position:absolute;display:none;left:10px;z-index:6;touch-action:none;cursor:grab;border-radius:50%;box-shadow:0 6px 20px #0008}
+#dial:active{cursor:grabbing}
 #ctx .valbox{display:inline-flex;align-items:center;background:#0f1318;border:1px solid var(--line);border-radius:8px;height:34px;direction:ltr;padding-right:8px}
 #ctx .valbox input{border:0;background:transparent;width:62px;text-align:right;padding:0 2px 0 8px}
 #ctx .valbox select{border:0;background:transparent;height:32px;font:13px ui-monospace,monospace;color:#f5b83d;padding:0 2px}
@@ -98,7 +99,7 @@ button,select,input{font:inherit;color:inherit}
   #topbar{right:6px;top:6px}
   #clock{top:66px;left:10px}
   #ctx{bottom:62px;flex-wrap:wrap;justify-content:center;width:calc(100% - 12px);row-gap:4px}
-  #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px} #ctx .knob{width:38px;height:38px} #ctx .speedsel .sp{padding:0 5px} #ctx{padding:4px;gap:3px} #ctx .rng input{width:96px}
+  #ctx input{width:60px} #ctx .ib{min-width:32px;padding:0 4px} #ctx .speedsel .sp{padding:0 5px} #ctx{padding:4px;gap:3px} #ctx .rng input{width:96px}
   #bAll .lbl{display:none} #info{top:110px;font-size:12px} #drawer{bottom:60px} #drawer .grid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
 }
 </style>
@@ -1157,7 +1158,7 @@ const bPlay=document.getElementById('bPlay');
 function togglePlay(){ running=!running; bPlay.textContent=running?'❚❚':'▶'; bPlay.classList.toggle('paused',!running); }
 bPlay.onclick=togglePlay; document.getElementById('bUndo2').onclick=()=>undo();
 
-// ======================= Value editing (number + fixed prefix, rotary knob) =======================
+// ======================= Value editing (number + fixed prefix, big rotary dial) =======================
 const PREFIXES=[[1e-12,'p'],[1e-9,'n'],[1e-6,'µ'],[1e-3,'m'],[1,''],[1e3,'k'],[1e6,'M']];
 let knobSpeed=1;   // 0 fine, 1 normal, 2 fast
 function splitSI(v){
@@ -1166,61 +1167,97 @@ function splitSI(v){
   return {k, m:String(parseFloat((v/k).toPrecision(4)))};
 }
 function niceVal(v){ const e=Math.pow(10,Math.floor(Math.log10(v))-2); return Math.round(v/e)*e; }   // 3 significant digits
+// Dial steps: each click of the dial moves to the next value of a series (like real resistor values)
+const SERIES=[
+  Array.from({length:90},(_,i)=>1+i*0.1),                                                    // دقيق: 1.0 1.1 … 9.9
+  [1,1.1,1.2,1.3,1.5,1.6,1.8,2,2.2,2.4,2.7,3,3.3,3.6,3.9,4.3,4.7,5.1,5.6,6.2,6.8,7.5,8.2,9.1],  // عادي: E24
+  [1,2,5]];                                                                                  // سريع: 1-2-5
+function stepVal(v,dir,ser){
+  const e0=Math.floor(Math.log10(v))-1;
+  const cand=[]; for (let e=e0;e<=e0+2;e++) for (const m of ser) cand.push(parseFloat((m*Math.pow(10,e)).toPrecision(4)));
+  if (dir>0){ for (const x of cand) if (x>v*(1+1e-6)) return x; }
+  else { for (let i=cand.length-1;i>=0;i--) if (cand[i]<v*(1-1e-6)) return cand[i]; }
+  return v;
+}
 function setValue(c,v){
-  const [lo,hi]=DEF[c.type].lim; v=Math.max(lo,Math.min(hi,v)); c.value=niceVal(v); save();
+  const [lo,hi]=DEF[c.type].lim; v=Math.max(lo,Math.min(hi,v)); c.value=niceVal(v); dirty=true; save();
   const sp=splitSI(c.value), vi=document.getElementById('valIn'), pi=document.getElementById('preIn');
   if (vi && document.activeElement!==vi) vi.value=sp.m; if (pi) pi.value=String(sp.k);
-  drawKnob(c);
+  drawDial();
 }
-function drawKnob(c){
-  const kc=document.getElementById('knob'); if (!kc) return;
-  const g=kc.getContext('2d'), S=88, cx=44, cy=44; g.clearRect(0,0,S,S);
-  const [lo,hi]=DEF[c.type].lim, f=(Math.log(c.value)-Math.log(lo))/(Math.log(hi)-Math.log(lo));
-  const a0=Math.PI*0.75, a1=Math.PI*2.25, a=a0+(a1-a0)*Math.max(0,Math.min(1,f));
-  g.lineCap='round';
-  g.strokeStyle='#2b333e'; g.lineWidth=6; g.beginPath(); g.arc(cx,cy,34,a0,a1); g.stroke();
-  g.strokeStyle='#f5b83d'; g.beginPath(); g.arc(cx,cy,34,a0,a); g.stroke();
-  const grd=g.createRadialGradient(cx-8,cy-10,4,cx,cy,26); grd.addColorStop(0,'#3a434f'); grd.addColorStop(1,'#1b2129');
-  g.fillStyle=grd; g.beginPath(); g.arc(cx,cy,25,0,Math.PI*2); g.fill();
-  // knurl marks rotate with the accumulated angle so the knob visibly turns
-  g.strokeStyle='#4a5462'; g.lineWidth=2;
-  for (let i=0;i<12;i++){ const t=knobAngle+i*Math.PI/6; g.beginPath(); g.moveTo(cx+Math.cos(t)*19,cy+Math.sin(t)*19); g.lineTo(cx+Math.cos(t)*23,cy+Math.sin(t)*23); g.stroke(); }
-  g.strokeStyle='#e8ecf1'; g.lineWidth=3; g.beginPath(); g.moveTo(cx+Math.cos(a)*8,cy+Math.sin(a)*8); g.lineTo(cx+Math.cos(a)*20,cy+Math.sin(a)*20); g.stroke();
+function stepValue(c,n){   // n whole clicks, + or −
+  let v=c.value; const [lo,hi]=DEF[c.type].lim;
+  for (let i=0;i<Math.abs(n);i++){ const nv=stepVal(v,Math.sign(n),SERIES[knobSpeed]); if (nv<lo||nv>hi) break; v=nv; }
+  if (v!==c.value){ setValue(c,v); if (navigator.vibrate) try{ navigator.vibrate(4); }catch(_){} }
 }
-let knobAngle=0;
+// ---- the dial: a big round knob in the corner, spun with a finger or the mouse ----
+const dialEl=document.createElement('canvas'); dialEl.id='dial'; document.getElementById('stage').appendChild(dialEl);
+let knobAngle=0, dialC=null, dialDrag=null;
+const detent=()=>knobSpeed===2?Math.PI/6:Math.PI/12;    // 15° per click (24 per turn); 30° in fast mode
+function dialSize(){ return innerWidth<=760?124:144; }
+function showDial(c){
+  dialC=c; if (!c){ dialEl.style.display='none'; return; }
+  const S=dialSize(); dialEl.style.display='block'; dialEl.style.width=dialEl.style.height=S+'px';
+  dialEl.width=dialEl.height=Math.round(S*(window.devicePixelRatio||1));
+  placeDial(); drawDial();
+}
+function placeDial(){
+  if (!dialC) return; const st=document.getElementById('stage').getBoundingClientRect(), cr=ctxEl.getBoundingClientRect();
+  dialEl.style.bottom=Math.max(8, st.bottom-cr.top+8)+'px';
+}
+function drawDial(){
+  const c=dialC; if (!c || dialEl.style.display==='none') return;
+  const g=dialEl.getContext('2d'), W=dialEl.width, k=W/144, R=W/2; g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,W);
+  g.save(); g.translate(R,R); g.scale(k,k);
+  g.fillStyle='rgba(20,25,32,0.92)'; g.strokeStyle='#2b333e'; g.lineWidth=2; g.beginPath(); g.arc(0,0,70,0,Math.PI*2); g.fill(); g.stroke();
+  // rotating knurled ring
+  for (let i=0;i<48;i++){ const t=knobAngle+i*Math.PI/24, big=i%4===0;
+    g.strokeStyle=big?'#f5b83d':'#4a5462'; g.lineWidth=big?3:2;
+    g.beginPath(); g.moveTo(Math.cos(t)*(big?54:58),Math.sin(t)*(big?54:58)); g.lineTo(Math.cos(t)*66,Math.sin(t)*66); g.stroke(); }
+  // grip dot
+  g.fillStyle='#f5b83d'; g.beginPath(); g.arc(Math.cos(knobAngle-Math.PI/2)*46,Math.sin(knobAngle-Math.PI/2)*46,5,0,Math.PI*2); g.fill();
+  const grd=g.createRadialGradient(-10,-12,4,0,0,40); grd.addColorStop(0,'#2e3640'); grd.addColorStop(1,'#161b22');
+  g.fillStyle=grd; g.beginPath(); g.arc(0,0,38,0,Math.PI*2); g.fill();
+  const T=DEF[c.type], txt=fmt(c.value,T.unit).split(' ');
+  g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#e8ecf1'; g.font='bold 19px ui-monospace,monospace';
+  g.fillText(txt[0],0,-6); g.fillStyle='#f5b83d'; g.font='13px ui-monospace,monospace'; g.fillText(txt.slice(1).join(' ')||T.unit,0,13);
+  g.fillStyle='#8e98a6'; g.font='10px system-ui,sans-serif'; g.fillText(dialDrag?'':'⟲ دوّر ⟳',0,29);
+  g.restore();
+}
+dialEl.addEventListener('pointerdown',e=>{
+  if (!dialC) return; e.preventDefault(); e.stopPropagation(); dialEl.setPointerCapture(e.pointerId);
+  const r=dialEl.getBoundingClientRect(); dialDrag={cx:r.left+r.width/2, cy:r.top+r.height/2, a:null, acc:0, moved:false};
+});
+dialEl.addEventListener('pointermove',e=>{
+  if (!dialDrag||!dialC) return; e.preventDefault();
+  const dx=e.clientX-dialDrag.cx, dy=e.clientY-dialDrag.cy;
+  if (Math.hypot(dx,dy)<10){ dialDrag.a=null; return; }          // too close to the centre: direction is meaningless
+  const a=Math.atan2(dy,dx);
+  if (dialDrag.a!==null){
+    let d=a-dialDrag.a; if (d>Math.PI) d-=2*Math.PI; if (d<-Math.PI) d+=2*Math.PI;
+    knobAngle+=d; dialDrag.acc+=d; dialDrag.moved=true;
+    const D=detent(), n=Math.trunc(dialDrag.acc/D);                     // whole clicks only; the remainder is kept, never lost
+    if (n){ dialDrag.acc-=n*D; stepValue(dialC,n); }
+    drawDial();
+  }
+  dialDrag.a=a;
+});
+const dialEnd=()=>{ if (dialDrag){ dialDrag=null; save(true); drawDial(); } };
+dialEl.addEventListener('pointerup',dialEnd); dialEl.addEventListener('pointercancel',dialEnd);
+dialEl.addEventListener('wheel',e=>{ if (!dialC) return; e.preventDefault(); const n=e.deltaY<0?1:-1; knobAngle+=n*detent(); stepValue(dialC,n); },{passive:false});
+addEventListener('resize',()=>{ if (dialC) showDial(dialC); });
 function setupValueEditor(c){
-  const vi=document.getElementById('valIn'), pi=document.getElementById('preIn'), kc=document.getElementById('knob');
-  const apply=()=>{ const m=parseFloat(vi.value.replace(',','.')); if (isFinite(m)&&m>0) setValue(c, m*(+pi.value)); else vi.value=splitSI(c.value).m; };
+  const vi=document.getElementById('valIn'), pi=document.getElementById('preIn');
+  const apply=()=>{ const m=parseFloat(vi.value.replace(',','.')); if (isFinite(m)&&m>0) setValue(c, m*(+pi.value)); else vi.value=splitSI(c.value).m; save(true); };
   // only digits and one dot can be typed: the prefix (k, µ…) can't be deleted by mistake
   vi.addEventListener('input',()=>{ const clean=vi.value.replace(',','.').replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1'); if (clean!==vi.value) vi.value=clean; });
   vi.addEventListener('change',apply);
   vi.addEventListener('keydown',e=>{
     if (e.key==='Enter'){ apply(); vi.blur(); }
-    if (e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); const st=e.shiftKey?10:e.altKey?0.1:1, m=parseFloat(vi.value)||0, nm=Math.max(0,m+(e.key==='ArrowUp'?st:-st));
-      vi.value=String(parseFloat(nm.toPrecision(6))); apply(); }
+    if (e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); stepValue(c, e.key==='ArrowUp'?1:-1); vi.value=splitSI(c.value).m; save(true); }
   });
   pi.addEventListener('change',apply);
   document.querySelectorAll('#ctx .sp').forEach(b=>b.onclick=()=>{ knobSpeed=+b.dataset.s; document.querySelectorAll('#ctx .sp').forEach(x=>x.classList.toggle('on',x===b)); });
-  // rotary knob: drag in circles around it. The rate depends on the circle size:
-  // small tight circles change the value fast, large circles give fine control.
-  const K=[0.3,1,3];
-  let last=null;
-  kc.addEventListener('pointerdown',e=>{ e.preventDefault(); kc.setPointerCapture(e.pointerId); const r=kc.getBoundingClientRect(); last={cx:r.left+r.width/2, cy:r.top+r.height/2, a:null}; });
-  kc.addEventListener('pointermove',e=>{
-    if (!last) return;
-    const dx=e.clientX-last.cx, dy=e.clientY-last.cy, rad=Math.hypot(dx,dy); if (rad<6) return;
-    const a=Math.atan2(dy,dx);
-    if (last.a!==null){
-      let d=a-last.a; if (d>Math.PI) d-=2*Math.PI; if (d<-Math.PI) d+=2*Math.PI;
-      // ~×10 per small (r≈15px) turn, ~×1.25 per large (r≈150px) turn at normal speed
-      const sens=K[knobSpeed]*5.5/Math.max(10,Math.min(300,rad));
-      knobAngle+=d; setValue(c, c.value*Math.exp(d*sens));
-    }
-    last.a=a;
-  });
-  const end=()=>{ last=null; }; kc.addEventListener('pointerup',end); kc.addEventListener('pointercancel',end);
-  kc.addEventListener('wheel',e=>{ e.preventDefault(); knobAngle-=e.deltaY*0.004; setValue(c, c.value*Math.exp(-e.deltaY*0.0015*[0.25,1,3][knobSpeed])); },{passive:false});
-  drawKnob(c);
 }
 
 // ======================= Context toolbar (selected item) =======================
@@ -1239,7 +1276,7 @@ function toggleProbe(kind,c,ti){
   renderCtx(); renderChips(); save();
 }
 function renderCtx(){
-  if (!selected){ ctxEl.style.display='none'; return; }
+  if (!selected){ ctxEl.style.display='none'; showDial(null); return; }
   let h='';
   if (selected.kind==='comp'){
     const c=selected.c, T=DEF[c.type], M=T.meas;
@@ -1249,9 +1286,8 @@ function renderCtx(){
     if (T.lim){
       const sp=splitSI(c.value);
       if (GATES.has(c.type)) h+=`<span class="nm" title="تأخير الانتشار: الزمن بين تغيّر الدخل وتغيّر الخرج">tpd</span>`;
-      h+=`<canvas id="knob" class="knob" width="88" height="88" title="دوّر لتغيير القيمة: دائرة صغيرة = سريع، دائرة كبيرة = دقيق"></canvas>`;
       h+=`<span class="valbox"><input id="valIn" inputmode="decimal" value="${sp.m}" title="الرقم"><select id="preIn" title="البادئة">${PREFIXES.map(([k,s])=>`<option value="${k}"${k===sp.k?' selected':''}>${s||'·'}</option>`).join('')}</select><span class="unit">${T.unit}</span></span>`;
-      h+=`<span class="speedsel" title="سرعة التغيير">${['دقيق','عادي','سريع'].map((n,i)=>`<button class="sp ${knobSpeed===i?'on':''}" data-s="${i}">${n}</button>`).join('')}</span>`;
+      h+=`<span class="speedsel" title="سرعة التغيير">${['دقيق','عادي','سريع'].map((n,i)=>`<button class="sp ${knobSpeed===i?'on':''}" data-s="${i}" title="${['خطوة 0.1 (1.0، 1.1، 1.2…)','قيم المقاومات القياسية E24 (4.7، 5.1، 5.6…)','1، 2، 5، 10، 20، 50…'][i]}">${n}</button>`).join('')}</span>`;
     }
     if (c.type==='V'){
       h+=`<select id="modeIn"><option value="dc"${c.mode==='dc'?' selected':''}>DC</option><option value="ac"${c.mode==='ac'?' selected':''}>AC ~</option><option value="sq"${c.mode==='sq'?' selected':''}>⊓ مربعة</option><option value="tri"${c.mode==='tri'?' selected':''}>⋀ مثلثية</option><option value="saw"${c.mode==='saw'?' selected':''}>⩘ سن منشار</option></select>`;
@@ -1295,6 +1331,7 @@ function renderCtx(){
     r.oninput=()=>{ const v=+r.value; if (c.type==='POT') c.pos=v/100; else if (c.type==='LDR') c.lux=parseFloat(Math.pow(10,v).toPrecision(2)); else c.temp=v; show(); };
     r.onchange=()=>save(); show(); }
   if (q('freqIn')) q('freqIn').onchange=()=>{ const v=parseSI(q('freqIn').value); if (isFinite(v)&&v>0){ c.freq=v; if (c.freq*speed/(60*SUB)>0.02) setSpeed(fitSpeed(c.freq)); save(); } q('freqIn').value=fmt(c.freq,'Hz').replace(' ',''); };
+  showDial(selected.kind==='comp' && DEF[c.type].lim && c.type!=='REG' ? c : null);
   placeCtx();
 }
 function placeCtx(){ return; // toolbar is docked at the bottom, above the parts bar
