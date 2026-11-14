@@ -86,6 +86,10 @@ button,select,input{font:inherit;color:inherit}
 .seg .sb{border:0;border-radius:0}
 .sb.on{background:#2a313b;color:var(--accent)}
 #ctx .fld{display:inline-flex;align-items:center;gap:3px;font:11px ui-monospace,monospace;color:var(--muted)}
+#toast{display:none;top:70px;left:50%;transform:translateX(-50%);z-index:7;font-size:13px;padding:4px 6px 4px 12px;gap:8px;white-space:nowrap}
+#toast .ib{height:32px;color:var(--accent);font-size:13px}
+#menu{display:none;top:62px;right:10px;flex-direction:column;align-items:stretch;z-index:8}
+#menu .ib{justify-content:flex-start;font-size:13px}
 #ghost{position:fixed;pointer-events:none;z-index:50;display:none;opacity:.9}
 @media (max-width:640px){
   .ib{min-width:36px;height:38px;padding:0 6px}
@@ -119,6 +123,7 @@ button,select,input{font:inherit;color:inherit}
     <select id="speed" title="سرعة الزمن"></select>
     <button class="ib" id="bUndo" title="تراجع (Ctrl+Z)">↶</button><button class="ib" id="bRedo" title="إعادة (Ctrl+Y)">↷</button>
     <span class="sep"></span>
+    <button class="ib" id="bMenu" title="مشاركة وحفظ">⇪</button>
     <button class="ib" id="bReset" title="إعادة الزمن للصفر">⏮</button>
     <button class="ib" id="bFit" title="ملاءمة اللوحة">⤢</button>
   </div>
@@ -126,6 +131,8 @@ button,select,input{font:inherit;color:inherit}
   <div class="pill" id="ctx"></div>
   <div class="pill" id="drawer"></div>
   <div class="pill" id="info"></div>
+  <div class="pill" id="toast"></div>
+  <div class="pill" id="menu"><button class="ib" id="mLink">🔗 نسخ رابط الدارة</button><button class="ib" id="mSave">💾 حفظ كملف</button><button class="ib" id="mOpen">📂 فتح ملف</button><input type="file" id="mFile" accept=".json,application/json" hidden></div>
 </main>
 <div id="scopeWrap"><div id="chips"></div><div id="scopeBox"><canvas id="scope"></canvas></div></div>
 <div id="ghost"></div>
@@ -147,12 +154,15 @@ const DEF = {
   G:   {name:'أرضي', cat:0, pins:[[0,0]], box:[0.3,-0.75,1.5,0.75], pn:['GND'], rot:1},
   RAIL:{name:'نقطة تغذية', cat:0, pins:[[0,0]], box:[-0.9,-1.6,0.9,-0.3], pn:['+V'], unit:'V', def:5, lim:[1e-3,1000], meas:{v:[0],i:0,s:-1}},
   SW:  {name:'قاطع', cat:0, ...TWO, pn:['a','b'], meas:{v:[0,1],i:0}},
+  BTN: {name:'زر ضغط لحظي', cat:0, ...TWO, pn:['a','b'], meas:{v:[0,1],i:0}},
+  I:   {name:'منبع تيار', cat:0, ...TWO, pn:['a','b'], unit:'A', def:1e-3, lim:[1e-9,10], meas:{v:[1,0],i:0}, rot:3},
   POT: {name:'مقاومة متغيرة', cat:0, pins:[[-2,0],[2,0],[0,2]], box:[-1.3,-0.75,1.3,1.2], pn:['A','B','W'], unit:'Ω', def:10000, lim:[10,10e6], meas:{v:[2,1],i:2,s:-1}},
   D:   {name:'دايود', cat:1, ...TWO, pn:['A','K'], meas:{v:[0,1],i:0}},
   LED: {name:'LED', cat:1, ...TWO, pn:['A','K'], meas:{v:[0,1],i:0}},
   Z:   {name:'زينر', cat:1, ...TWO, pn:['A','K'], unit:'V', def:5.1, lim:[1,50], meas:{v:[1,0],i:1}},
   NPN: {name:'ترانزستور NPN', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['C','B','E'], meas:{v:[0,2],i:0}},
   PNP: {name:'ترانزستور PNP', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['C','B','E'], meas:{v:[2,0],i:0,s:-1}},
+  PMOS:{name:'MOSFET قناة P', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['D','G','S'], meas:{v:[2,0],i:0,s:-1}},
   NMOS:{name:'MOSFET قناة N', cat:1, pins:[[1,-2],[-2,0],[1,2]], box:[-1.3,-1.3,1.6,1.3], pn:['D','G','S'], meas:{v:[0,2],i:0}},
   AND: {name:'AND', cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
   OR:  {name:'OR',  cat:2, unit:'s', def:1e-4, lim:[1e-9,1], pins:[[-2,-1],[-2,1],[2,0]], box:[-1.3,-1.6,1.3,1.6], pn:['A','B','Y'], meas:{v:[2]}},
@@ -186,7 +196,7 @@ const SPEEDS = [1e-5,1e-4,1e-3,1e-2,5e-2,0.1,0.2,0.5,1];
 let speed = 0.2;
 const SUB = 25;
 const newState = () => ({vp:0,vpp:0,ip:0,ipp:0,q:0,on:false,lit:0});
-const LABEL = {G:'GND', RAIL:'VCC', T555:'U', OPAMP:'U', REG:'U', LM35:'U', AND:'U', OR:'U', NAND:'U', NOR:'U', XOR:'U', NOT:'U', NPN:'Q', PNP:'Q', NMOS:'Q', RELAY:'K', AVO:'M', ADC:'U', DEC:'U', SR595:'U', SEG7:'DS', CLK:'CLK', LP:'L', LDR:'LDR', POT:'RV', LED:'LED', SW:'S', Z:'DZ'};
+const LABEL = {G:'GND', RAIL:'VCC', T555:'U', OPAMP:'U', REG:'U', LM35:'U', AND:'U', OR:'U', NAND:'U', NOR:'U', XOR:'U', NOT:'U', NPN:'Q', PNP:'Q', NMOS:'Q', PMOS:'Q', BTN:'B', I:'I', RELAY:'K', AVO:'M', ADC:'U', DEC:'U', SR595:'U', SEG7:'DS', CLK:'CLK', LP:'L', LDR:'LDR', POT:'RV', LED:'LED', SW:'S', Z:'DZ'};
 function addComp(type, x, y, rot, value, extra){
   const pre = LABEL[type] || type;
   counters[pre] = (counters[pre]||0)+1;
@@ -255,7 +265,7 @@ function autoLink(c, tol=0){ nearTerms(c,tol).forEach(p=>addLink(c,p.ti,p.o,p.ui
 
 // ======================= Netlist =======================
 const tkey = (c,ti) => c.id+':'+ti;
-const NONLIN = new Set(['D','LED','Z','NPN','PNP','NMOS','REG','LM35','OPAMP']);
+const NONLIN = new Set(['D','LED','Z','NPN','PNP','NMOS','PMOS','REG','LM35','OPAMP']);
 function build(){
   const idx = new Map(); let n = 0;
   const gnd = new Set();
@@ -339,10 +349,11 @@ function edgesOf(e){
   const c=e.c, n=e.n;
   switch(e.kind){
     case 'W': case 'R': case 'C': case 'L': case 'V': case 'D': case 'LED': case 'Z': case 'LDR': return [[0,1,true]];
-    case 'SW': return c.on ? [[0,1,true]] : [];
+    case 'SW': case 'BTN': return c.on ? [[0,1,true]] : [];
+    case 'I': return [[0,1,true]];
     case 'RAIL': return [[0,-1,false]];
     case 'POT': return [[0,2,false],[2,1,false]];
-    case 'NPN': case 'PNP': case 'NMOS': return [[0,1,false],[1,2,false],[0,2,false]];
+    case 'NPN': case 'PNP': case 'NMOS': case 'PMOS': return [[0,1,false],[1,2,false],[0,2,false]];
     case 'NOT': return [[0,-1,false],[1,-1,false]];
     case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': return [[0,-1,false],[1,-1,false],[2,-1,false]];
     case 'REG': case 'LM35': return [[0,1,false],[0,2,false]];
@@ -444,17 +455,17 @@ function bjt(e,S,c,b,em,s){
   const row=(r,I0,cbe,cbc)=>{ S.add(r,b,cbe+cbc); S.add(r,em,-cbe); S.add(r,c,-cbc); S.rhs(r,-s*(I0-cbe*vbe-cbc*vbc)); };
   row(c,Ic,a1,a2); row(b,Ib,b1,b2); row(em,-(Ic+Ib),-(a1+b1),-(a2+b2));
 }
-function mos(e,S,d,g,s0){
-  const st=e.c.st, Vth=2, K=0.1, lam=0.01;
-  let dd=d, ss=s0; if (S.X(d)<S.X(s0)){ dd=s0; ss=d; }
-  let vgs=S.X(g)-S.X(ss); const vds=S.X(dd)-S.X(ss);
+function mos(e,S,d,g,s0,sg=1){          // sg=-1: P channel (same equations on mirrored voltages)
+  const st=e.c.st, Vth=2, K=0.1, lam=0.01, X=i=>sg*S.X(i);
+  let dd=d, ss=s0; if (X(d)<X(s0)){ dd=s0; ss=d; }
+  let vgs=X(g)-X(ss); const vds=X(dd)-X(ss);
   if (!S.rec){ const o=st.vgs??0; vgs=Math.max(o-0.5,Math.min(o+0.5,vgs)); st.vgs=vgs; }
   const vov=vgs-Vth; let Id=0,gm=0,gds=0;
   if (vov>0){
     if (vds<vov){ const f=vov*vds-vds*vds/2; Id=K*f*(1+lam*vds); gm=K*vds*(1+lam*vds); gds=K*(vov-vds)*(1+lam*vds)+K*f*lam; }
     else { Id=K/2*vov*vov*(1+lam*vds); gm=K*vov*(1+lam*vds); gds=K/2*vov*vov*lam; }
   }
-  const k0=Id-gm*vgs-gds*vds;
+  const k0=sg*(Id-gm*vgs-gds*vds);
   S.add(dd,g,gm); S.add(dd,ss,-gm-gds); S.add(dd,dd,gds); S.rhs(dd,-k0);
   S.add(ss,g,-gm); S.add(ss,ss,gm+gds); S.add(ss,dd,-gds); S.rhs(ss,k0);
   Gs(S,dd,ss,1e-9);
@@ -470,7 +481,8 @@ function stampElem(e,S){
   switch(e.kind){
     case 'R': Gs(S,n[0],n[1],1/Math.max(c.value,1e-6)); break;
     case 'W': Gs(S,n[0],n[1],GW); break;
-    case 'SW': Gs(S,n[0],n[1],c.on?GW:1e-9); break;
+    case 'SW': case 'BTN': Gs(S,n[0],n[1],c.on?GW:1e-9); break;
+    case 'I': Js(S,n[1],n[0],c.value); break;                // pushes I out of pin b (arrow a→b)
     case 'LDR': Gs(S,n[0],n[1],1/ldrR(c)); break;
     case 'POT': { const R=Math.max(c.value,1); Gs(S,n[0],n[2],1/Math.max(1,R*c.pos)); Gs(S,n[2],n[1],1/Math.max(1,R*(1-c.pos))); break; }
     case 'C': { const C=Math.max(c.value,1e-15), s=c.st;
@@ -485,6 +497,7 @@ function stampElem(e,S){
     case 'NPN': bjt(e,S,n[0],n[1],n[2],1); break;
     case 'PNP': bjt(e,S,n[0],n[1],n[2],-1); break;
     case 'NMOS': mos(e,S,n[0],n[1],n[2]); break;
+    case 'PMOS': mos(e,S,n[0],n[1],n[2],-1); break;
     case 'NOT': case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': {
       const out=n[n.length-1]; for (let i=0;i<n.length-1;i++) Gs(S,n[i],-1,1e-6);   // 1 MΩ input
       const Go=1/25; S.add(out,out,Go); S.rhs(out,Go*(c.st.q?5:0)); break; }       // 5 V logic, 25 Ω output
@@ -715,6 +728,15 @@ function drawComp(c){
         else { ctx.moveTo(-9,4);ctx.lineTo(-9,-5);ctx.lineTo(0,-5);ctx.lineTo(0,4);ctx.lineTo(9,4);ctx.lineTo(9,-5); }
         ctx.stroke(); ctx.font='bold 11px ui-monospace,monospace'; ctx.fillText('+', dx*26-dy*10, dy*26+dx*10); }
       break; }
+    case 'BTN': {
+      lineV(-40,0,-14,0,va); lineV(14,0,40,0,vb);
+      ctx.strokeStyle=BODY; ctx.fillStyle='#0b0e12'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(-14,0,3.5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(14,0,3.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      const yb=c.on?-4:-11; ctx.lineWidth=3; ctx.strokeStyle=c.on?vcol(va):BODY; ctx.beginPath(); ctx.moveTo(-16,yb); ctx.lineTo(16,yb); ctx.moveTo(0,yb); ctx.lineTo(0,yb-9); ctx.moveTo(-6,yb-9); ctx.lineTo(6,yb-9); ctx.stroke(); break; }
+    case 'I': {
+      lineV(-40,0,-17,0,va); lineV(17,0,40,0,vb);
+      ctx.fillStyle='#0b0e12'; ctx.strokeStyle=BODY; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(-9,0); ctx.lineTo(7,0); ctx.stroke(); ctx.fillStyle=BODY; arrowHead(11,0,0,8); break; }
     case 'SW': {
       lineV(-40,0,-14,0,va); lineV(14,0,40,0,vb);
       ctx.strokeStyle=BODY; ctx.fillStyle='#0b0e12'; ctx.lineWidth=2;
@@ -746,12 +768,12 @@ function drawComp(c){
       ctx.fillStyle=vcol(termV(c,2));
       if (T==='NPN') arrowHead(18,19,Math.atan2(14,28),9); else arrowHead(-6,7,Math.atan2(-14,-28),9);
       break; }
-    case 'NMOS': {
+    case 'NMOS': case 'PMOS': {
       ctx.shadowBlur=0; ctx.strokeStyle=BODY; ctx.lineWidth=2; ctx.fillStyle='#141a21'; ctx.beginPath(); ctx.arc(4,0,24,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.lineWidth=3;
       pinLead(c,1,-12,0); ctx.strokeStyle=BODY; ctx.beginPath(); ctx.moveTo(-12,-12); ctx.lineTo(-12,12); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-4,-14); ctx.lineTo(-4,-6); ctx.moveTo(-4,-3); ctx.lineTo(-4,3); ctx.moveTo(-4,6); ctx.lineTo(-4,14); ctx.stroke();
       lineV(-4,-10,20,-10,termV(c,0)); pinLead(c,0,20,-10); lineV(-4,10,20,10,termV(c,2)); pinLead(c,2,20,10); lineV(-4,0,20,0,termV(c,2)); lineV(20,0,20,10,termV(c,2));
-      ctx.fillStyle=vcol(termV(c,2)); arrowHead(-3,0,Math.PI,7); break; }
+      ctx.fillStyle=vcol(termV(c,2)); if (T==='PMOS') arrowHead(19,0,0,7); else arrowHead(-3,0,Math.PI,7); break; }
     case 'AND': case 'OR': case 'NAND': case 'NOR': case 'XOR': case 'NOT': {
       ctx.shadowBlur=0; const ins=T==='NOT'?[0]:[0,1], out=T==='NOT'?1:2;
       ins.forEach(i=>{ const p=DEF[T].pins[i]; pinLead(c,i, T==='NOT'?-22:(T==='AND'||T==='NAND'?-24:-20), p[1]*GRID); });
@@ -844,12 +866,13 @@ function compText(c){
     case 'V': return c.mode==='dc' ? fmt(c.value,'V') : '±'+fmt(c.value,'V')+(c.off?(c.off>0?' +':' ')+fmt(c.off,'V'):'')+' '+fmt(c.freq,'Hz');
     case 'AVO': return '';
     case 'SW': return c.on?'مغلق':'مفتوح';
+    case 'BTN': return c.on?'مضغوط':'';
     case 'POT': return fmt(c.value,'Ω')+' · '+Math.round(c.pos*100)+'%';
     case 'LDR': return fmt(ldrR(c),'Ω')+' · '+fmt(c.lux,'lx');
     case 'D': return '1N4148';
     case 'LED': return '';
     case 'Z': return 'Vz '+fmt(c.value,'V');
-    case 'NPN': return '2N2222'; case 'PNP': return '2N2907'; case 'NMOS': return '2N7000';
+    case 'NPN': return '2N2222'; case 'PNP': return '2N2907'; case 'NMOS': return '2N7000'; case 'PMOS': return 'BS250';
     case 'RELAY': return c.st.on?'مُفعّل':'';
     case 'CLK': return fmt(c.value,'Hz');
     case 'ADC': case 'DEC': case 'SEG7': case 'SR595': case 'LP': return '';
@@ -873,7 +896,7 @@ function pinInner(c,ti){
   const b=DEF[c.type].box, p=DEF[c.type].pins[ti], q=rotP([Math.max(b[0],Math.min(b[2],p[0])), Math.max(b[1],Math.min(b[3],p[1]))], c.rot);
   return [c.x+q[0], c.y+q[1]];
 }
-const TWO_T = new Set(['R','C','L','V','SW','LDR','D','LED','Z']);
+const TWO_T = new Set(['R','C','L','V','I','BTN','SW','LDR','D','LED','Z']);
 let drag=null, hoverT=null;
 function probeTag(x,y,txt,col){
   ctx.font='bold 11px ui-monospace,monospace'; ctx.direction='ltr';
@@ -929,7 +952,7 @@ function draw(){
   if (armed){
     const a=tpos(armed.c,armed.ti), pulse=7+3*Math.sin(performance.now()/150);
     ctx.strokeStyle='#f5b83d'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(a[0]*GRID,a[1]*GRID,pulse+4,0,Math.PI*2); ctx.stroke();
-    if (mouseW && !touchMode){ ctx.setLineDash([6,5]); ctx.beginPath(); ctx.moveTo(a[0]*GRID,a[1]*GRID); ctx.lineTo(mouseW.x,mouseW.y); ctx.stroke(); ctx.setLineDash([]); }
+    if (mouseW && !touchMode && !(net.deg.get(tkey(armed.c,armed.ti))||0)){ ctx.setLineDash([6,5]); ctx.beginPath(); ctx.moveTo(a[0]*GRID,a[1]*GRID); ctx.lineTo(mouseW.x,mouseW.y); ctx.stroke(); ctx.setLineDash([]); }
   }
   if (hoverT){ const t=tpos(hoverT.c,hoverT.ti); ctx.strokeStyle='#f5b83d'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(t[0]*GRID,t[1]*GRID,9,0,Math.PI*2); ctx.stroke(); }
   if (drag && drag.type==='wire' && drag.moved){
@@ -981,10 +1004,12 @@ cv.addEventListener('pointerdown', e=>{
   const p=local(e); pointers.set(e.pointerId,p);
   if (pointers.size===2){ const [a,b]=[...pointers.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:view.s,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox:view.ox,oy:view.oy}; drag=null; return; }
   const w=toWorld(p.x,p.y);
-  const t=hitTerm(w);
+  let t=hitTerm(w); const lk=hitLink(w);
+  if (t && lk){ const q=tpos(t.c,t.ti); if (Math.hypot(q[0]*GRID-w.x,q[1]*GRID-w.y) > (touchMode?10:6)/Math.min(view.s,1.4)) t=null; }   // on a wire, away from the pin: it's the wire
   if (t){ const g=snap(w); drag={type:'wire', c:t.c, ti:t.ti, wx:w.x, wy:w.y, p0:p, moved:false, dx:g.x-t.c.x, dy:g.y-t.c.y}; return; }
   armed=null;
   const c=hitComp(w);
+  if (c && c.type==='BTN'){ c.on=true; dirty=true; }
   if (c){ const g=snap(w); drag={type:'move', c, dx:g.x-c.x, dy:g.y-c.y, p0:p, moved:false}; select({kind:'comp',c}); return; }
   const l=hitLink(w);
   if (l){ select({kind:'wire',l}); drag=null; return; }
@@ -1025,6 +1050,7 @@ function endPointer(e){
     else if (t && !(t.c===drag.c && t.ti===drag.ti)){ const l=addLink(drag.c,drag.ti,t.c,t.ti); if (l) select({kind:'wire',l}); save(); }
   } else if (drag.type==='move' && drag.moved){ autoLink(drag.c, WELD); save(); }
   else if (drag.type==='move' && drag.c.type==='SW') toggleSwitch(drag.c);
+  if (drag.type==='move' && drag.c.type==='BTN'){ drag.c.on=false; dirty=true; }
   drag=null; hoverT=null; cv.style.cursor='default';
 }
 cv.addEventListener('pointerup',endPointer); cv.addEventListener('pointercancel',endPointer);
@@ -1035,8 +1061,21 @@ function rotateSel(){
   const c=selected.c, nr=(c.rot+1)%4;
   for (const r of [nr,(nr+1)%4,(nr+2)%4]) if (canPlace(c,c.x,c.y,r)){ c.rot=r; autoLink(c); dirty=true; save(true); renderCtx(); return; }
 }
+let toastT=null;
+function toast(msg){
+  const el=document.getElementById('toast'); el.innerHTML=`<span>${msg}</span><button class="ib" id="tUndo">↶ تراجع</button>`; el.style.display='flex';
+  document.getElementById('tUndo').onclick=()=>{ undo(); el.style.display='none'; };
+  clearTimeout(toastT); toastT=setTimeout(()=>el.style.display='none',5000);
+}
+function dupSel(){
+  if (!selected || selected.kind!=='comp') return;
+  const o=selected.c, {type,rot,value,mode,freq,off,pos,lux,temp,color,mm}=o;
+  const c=addComp(type,o.x,o.y,rot,value,{mode,freq,off,pos,lux,temp,color,mm});
+  const [x,y]=freeSpot(c,o.x+3,o.y+3,rot,true); c.x=x; c.y=y; select({kind:'comp',c}); save(true);
+}
 function deleteSel(){
   if (!selected) return; armed=null;
+  toast(selected.kind==='comp' ? 'حُذف '+selected.c.label : selected.kind==='wire' ? 'حُذف السلك' : 'فُصلت الأسلاك');
   if (selected.kind==='comp'){ const c=selected.c; comps=comps.filter(o=>o!==c); links=links.filter(l=>l.c1!==c&&l.c2!==c); probes=probes.filter(p=>p.c!==c); }
   else if (selected.kind==='wire') links=links.filter(l=>l!==selected.l);
   else if (selected.kind==='node'){ const {c,ti}=selected; links=links.filter(l=>!((l.c1===c&&l.t1===ti)||(l.c2===c&&l.t2===ti))); }
@@ -1046,6 +1085,7 @@ window.addEventListener('keydown',e=>{
   if (e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
   if ((e.ctrlKey||e.metaKey) && (e.key==='z'||e.key==='Z')){ e.preventDefault(); e.shiftKey?redoFn():undo(); return; }
   if ((e.ctrlKey||e.metaKey) && (e.key==='y'||e.key==='Y')){ e.preventDefault(); redoFn(); return; }
+  if ((e.ctrlKey||e.metaKey) && (e.key==='d'||e.key==='D')){ e.preventDefault(); dupSel(); return; }
   if (e.key==='r'||e.key==='R'||e.key==='ق') rotateSel();
   else if (e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); deleteSel(); }
   else if (e.key===' '){ e.preventDefault(); togglePlay(); }
@@ -1112,10 +1152,10 @@ drawer.innerHTML=`<div class="dhead"><span>اسحب العنصر إلى اللو
   CATS.map((n,ci)=>`<div class="cat"><h4>${n}</h4><div class="grid">${Object.keys(DEF).filter(t=>DEF[t].cat===ci).map(t=>`<button class="part" data-t="${t}"><img src="${preview(t)}" width="76" height="56" alt=""><span>${DEF[t].name}</span></button>`).join('')}</div></div>`).join('');
 drawer.querySelectorAll('.part').forEach(b=>placeFrom(b,b.dataset.t,true));
 document.getElementById('dClose').onclick=()=>openDrawer(false);
-bar.insertAdjacentHTML('beforeend','<span class="sep"></span><button class="ib play" id="bPlay" title="تشغيل / إيقاف">❚❚</button>');
+bar.insertAdjacentHTML('beforeend','<span class="sep"></span><button class="ib" id="bUndo2" title="تراجع (Ctrl+Z)" style="font-size:19px">↶</button><button class="ib play" id="bPlay" title="تشغيل / إيقاف">❚❚</button>');
 const bPlay=document.getElementById('bPlay');
 function togglePlay(){ running=!running; bPlay.textContent=running?'❚❚':'▶'; bPlay.classList.toggle('paused',!running); }
-bPlay.onclick=togglePlay;
+bPlay.onclick=togglePlay; document.getElementById('bUndo2').onclick=()=>undo();
 
 // ======================= Value editing (number + fixed prefix, rotary knob) =======================
 const PREFIXES=[[1e-12,'p'],[1e-9,'n'],[1e-6,'µ'],[1e-3,'m'],[1,''],[1e3,'k'],[1e6,'M']];
@@ -1227,19 +1267,21 @@ function renderCtx(){
       if (M.i!==undefined) h+=`<button class="ib pi ${hasProbe('I',c)?'on':''}" data-p="I" title="مجس تيار">A</button>`;
       if (TWO_T.has(c.type)||c.type==='POT') h+=`<button class="ib pr ${hasProbe('R',c)?'on':''}" data-p="R" title="مجس مقاومة (V÷I)">Ω</button>`;
     }
-    h+=`<button class="ib" id="cRot" title="تدوير (R)">⟳</button><button class="ib danger" id="cDel" title="حذف">🗑</button>`;
+    h+=`<button class="ib" id="cDup" title="نسخة (Ctrl+D)">⧉</button><button class="ib" id="cRot" title="تدوير (R)">⟳</button><button class="ib danger" id="cDel" title="حذف (Delete)">🗑</button>`;
   } else if (selected.kind==='node'){
     const {c,ti}=selected;
     h+=`<span class="nm">${c.label}.${pinName(c,ti)}</span>${armed?'<span style="font-size:12px;color:#f5b83d;padding:0 6px">اضغط على نقطة ثانية لوصل سلك</span>':''}<button class="ib pv ${hasProbe('V',c,ti)?'on':''}" data-p="V" title="جهد هذه النقطة بالنسبة للأرضي">V</button>`;
     if ((net.deg.get(tkey(c,ti))||0)>0) h+=`<button class="ib danger" id="cDel" title="فصل الأسلاك عن هذا الطرف">✂</button>`;
   } else {
-    h+=`<span class="nm">سلك</span><button class="ib danger" id="cDel" title="حذف السلك">🗑</button>`;
+    const l=selected.l;
+    h+=`<span class="nm">سلك</span><button class="ib pv ${hasProbe('V',l.c1,l.t1)?'on':''}" data-p="V" title="جهد هذا السلك بالنسبة للأرضي">V</button><button class="ib danger" id="cDel" title="حذف السلك (Delete)">✂</button>`;
   }
   ctxEl.innerHTML=h; ctxEl.style.display='flex';
   const c=selected.c;
-  ctxEl.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>toggleProbe(b.dataset.p,c,selected.kind==='node'?selected.ti:undefined));
+  ctxEl.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ if (selected.kind==='wire') toggleProbe('V',selected.l.c1,selected.l.t1); else toggleProbe(b.dataset.p,c,selected.kind==='node'?selected.ti:undefined); });
   const q=id=>document.getElementById(id);
   if (q('cRot')) q('cRot').onclick=rotateSel;
+  if (q('cDup')) q('cDup').onclick=dupSel;
   if (q('cDel')) q('cDel').onclick=deleteSel;
   if (q('valIn')) setupValueEditor(c);
   if (q('modeIn')) q('modeIn').onchange=()=>{ c.mode=q('modeIn').value; save(); renderCtx(); };
@@ -1800,7 +1842,7 @@ function applySnap(sn){
   armed=null; select(null); restore(JSON.parse(sn)); build(); resetSim(); renderChips(); updUndo();
   try{ localStorage.setItem('circuit2d_v2', sn); }catch(_){}
 }
-function updUndo(){ const u=document.getElementById('bUndo'), r=document.getElementById('bRedo'); if (u) u.disabled=hist.length<2; if (r) r.disabled=!redo.length; }
+function updUndo(){ const u=document.getElementById('bUndo'), r=document.getElementById('bRedo'), u2=document.getElementById('bUndo2'); if (u) u.disabled=hist.length<2; if (u2) u2.disabled=hist.length<2; if (r) r.disabled=!redo.length; }
 
 // ======================= Main loop =======================
 let lastT=performance.now(), uiT=0, lastWarn='', stepsUI=0, meterT=0;
@@ -1841,7 +1883,34 @@ function frame(ts){
   }
   requestAnimationFrame(frame);
 }
-resize(); setSpeed(speed); load(); if (!hist.length) hist.push(snapshot()); updUndo(); build(); renderChips(); fitView();
+// ---- share a circuit as a link (compressed into the URL) or as a file ----
+const b64u={enc:u=>btoa(String.fromCharCode(...u)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),
+  dec:s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),ch=>ch.charCodeAt(0))};
+async function packLink(){
+  const raw=new TextEncoder().encode(snapshot());
+  let data=raw, tag='j';
+  if (window.CompressionStream){ data=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); tag='z'; }
+  let bin=''; for (let i=0;i<data.length;i+=8192) bin+=String.fromCharCode(...data.subarray(i,i+8192));
+  return location.href.split('#')[0]+'#'+tag+'='+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function loadLink(){
+  const m=location.hash.match(/^#([zj])=(.+)$/); if (!m) return false;
+  try{ let u=b64u.dec(m[2]);
+    if (m[1]==='z') u=new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    const txt=new TextDecoder().decode(u); restore(JSON.parse(txt)); hist.length=0; hist.push(txt); redo.length=0; updUndo(); build(); resetSim(); renderChips(); fitView(); save(true);
+    history.replaceState(null,'',location.pathname+location.search); return true;
+  }catch(_){ return false; }
+}
+const menuEl=document.getElementById('menu');
+document.getElementById('bMenu').onclick=()=>{ menuEl.style.display = menuEl.style.display==='flex'?'none':'flex'; };
+document.getElementById('mLink').onclick=async()=>{ const url=await packLink(); menuEl.style.display='none';
+  try{ await navigator.clipboard.writeText(url); toastMsg('نُسخ رابط الدارة — أي حدا بيفتحه بيشوف نفس الدارة'); }catch(_){ prompt('انسخ الرابط:',url); } };
+document.getElementById('mSave').onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'})); a.download='circuit.json'; a.click(); menuEl.style.display='none'; };
+document.getElementById('mOpen').onclick=()=>document.getElementById('mFile').click();
+document.getElementById('mFile').onchange=async e=>{ const f=e.target.files[0]; if (!f) return; menuEl.style.display='none';
+  try{ const txt=await f.text(); armed=null; select(null); restore(JSON.parse(txt)); build(); resetSim(); renderChips(); fitView(); save(true); }catch(_){ toastMsg('الملف غير صالح'); } e.target.value=''; };
+function toastMsg(m){ const el=document.getElementById('toast'); el.innerHTML=`<span>${m}</span>`; el.style.display='flex'; clearTimeout(toastT); toastT=setTimeout(()=>el.style.display='none',3500); }
+resize(); setSpeed(speed); load(); if (!hist.length) hist.push(snapshot()); updUndo(); build(); renderChips(); fitView(); loadLink();
 requestAnimationFrame(frame);
 </script>
 </body>
