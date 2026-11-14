@@ -1295,8 +1295,8 @@ function renderChips(){
     + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><button class="sb ${scopeAuto?'on':''}" id="sAuto" title="عرض زمني تلقائي: بضع دورات من الإشارة">تلقائي</button><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
   chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
   scopeBtn('sAuto',()=>{ setAuto(!scopeAuto); if (scopeAuto) autoT=0; });
-  scopeBtn('sZi',()=>{ setAuto(false); scopeZoom=Math.max(0.002,scopeZoom/1.6); if (scopeRight!==null) setRight(scopeRight); });
-  scopeBtn('sZo',()=>{ setAuto(false); scopeZoom=Math.min(10,scopeZoom*1.6); if (scopeRight!==null) setRight(scopeRight); });
+  scopeBtn('sZi',()=>{ setAuto(false); freezeScope(); scopeZoom=Math.max(0.002,scopeZoom/1.6); setRight(scopeRight,true); });
+  scopeBtn('sZo',()=>{ setAuto(false); freezeScope(); scopeZoom=Math.min(10,scopeZoom*1.6); setRight(scopeRight,true); });
   scopeBtn('scopeLive',()=>{ scopeRight=null; });
   chips.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ scopeMode=b.dataset.m; renderChips(); });
   resize();
@@ -1519,24 +1519,26 @@ function drawScope(){
 }
 function lb(b,t){ let lo=0, hi=b.length; while (lo<hi){ const m=(lo+hi)>>1; if (b[m].t<t) lo=m+1; else hi=m; } return lo; }
 function oldestT(){ let o=Infinity; probes.forEach(p=>{ if (p.buf.length) o=Math.min(o,p.buf[0].t); }); return isFinite(o)?o:0; }
-function setRight(t){
+function setRight(t,keep){
   if (!scopeLay) return;
   let now=0; probes.forEach(p=>{ if (p.buf.length) now=Math.max(now,p.buf[p.buf.length-1].t); });
   const min=Math.min(now, oldestT()+scopeLay.span*0.5);
-  scopeRight = t>=now-1e-12 ? null : Math.max(min,t);
+  scopeRight = keep ? Math.max(min,Math.min(now,t)) : t>=now-1e-12 ? null : Math.max(min,t);
 }
+// zooming freezes the live view so the waveform holds still; "● مباشر" resumes it
+function freezeScope(){ if (scopeRight===null && scopeLay) scopeRight=scopeLay.tR; }
 // drag left/right on the scope = scroll through time; wheel = zoom time; hover/tap = reading cursor
 const sPtr=new Map(); let sPinch=null;
 scope.addEventListener('pointerdown',e=>{ scope.setPointerCapture(e.pointerId); const r=scope.getBoundingClientRect(); sPtr.set(e.pointerId,e.clientX);
   if (sPtr.size===2 && scopeLay){ const [a,b]=[...sPtr.values()], fx=Math.max(0,Math.min(1,((a+b)/2-r.left-scopeLay.X0)/scopeLay.PW));
-    sPinch={d:Math.max(24,Math.abs(a-b)), z:scopeZoom, fx, tAt:scopeLay.tR-scopeLay.span*(1-fx), live:scopeRight===null}; scopePan=null; scopeCursor=null; return; }
+    sPinch={d:Math.max(24,Math.abs(a-b)), z:scopeZoom, fx, tAt:scopeLay.tR-scopeLay.span*(1-fx), live:false}; freezeScope(); scopePan=null; scopeCursor=null; return; }
   scopeCursor=e.clientX-r.left; scopePan={x:e.clientX, tR:scopeLay?scopeLay.tR:0, moved:false}; });
 scope.addEventListener('pointermove',e=>{
   const r=scope.getBoundingClientRect();
   if (sPtr.has(e.pointerId)) sPtr.set(e.pointerId,e.clientX);
   if (sPinch){ if (sPtr.size===2){ const [a,b]=[...sPtr.values()], d=Math.max(24,Math.abs(a-b));
       setAuto(false); scopeZoom=Math.max(0.002,Math.min(10,sPinch.z*sPinch.d/d));
-      if (!sPinch.live) setRight(sPinch.tAt+speed*SCOPE_N/60*scopeZoom*(1-sPinch.fx)); }
+      setRight(sPinch.tAt+speed*SCOPE_N/60*scopeZoom*(1-sPinch.fx), true); }
     return; }
   if (scopePan && scopeLay){ const dx=e.clientX-scopePan.x; if (Math.abs(dx)>3) scopePan.moved=true; if (scopePan.moved){ setRight(scopePan.tR - dx/scopeLay.PW*scopeLay.span); scope.style.cursor='grabbing'; } }
   scopeCursor=e.clientX-r.left;
@@ -1550,7 +1552,7 @@ scope.addEventListener('wheel',e=>{
   const r=scope.getBoundingClientRect(), fx=Math.max(0,Math.min(1,(e.clientX-r.left-scopeLay.X0)/scopeLay.PW));
   const tAt=scopeLay.tR-scopeLay.span*(1-fx), nz=Math.max(0.002,Math.min(10,scopeZoom*Math.exp(e.deltaY*0.0015)));
   const nspan=speed*SCOPE_N/60*nz; scopeZoom=nz; setAuto(false);
-  if (scopeRight!==null || fx<0.98) setRight(tAt+nspan*(1-fx));
+  freezeScope(); setRight(tAt+nspan*(1-fx), true);
 },{passive:false});
 function scopeBtn(id,fn){ document.getElementById(id).onclick=fn; }
 
