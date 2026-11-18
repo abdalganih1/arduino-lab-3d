@@ -73,6 +73,10 @@ button,select,input{font:inherit;color:inherit}
 .part:hover{border-color:#3b4452;background:#1c222b}
 .part img{pointer-events:none;width:76px;height:56px}
 #bAll .lbl{font-size:12px}
+#chips .chipsRow{display:contents}
+@media (max-width:760px){ #chips .chipsRow{display:flex;gap:6px;overflow-x:auto;width:100%;flex-wrap:nowrap;scrollbar-width:none} #chips .chipsRow .chip{flex:none} }
+#chips select.sb{height:26px;padding:0 4px;font:12px system-ui,sans-serif;direction:ltr}
+#chips .trg{font:13px ui-monospace,monospace;color:#4a5462;padding:0 3px}#chips .trg.on{color:#f5b83d}
 #ctx .rng{display:inline-flex;align-items:center;gap:4px;background:#0f1318;border:1px solid var(--line);border-radius:8px;height:34px;padding:0 8px;font-size:14px}
 #ctx .rng input{width:120px;height:26px;border:0;background:transparent;padding:0;accent-color:#f5b83d}
 #ctx .rng span{font:12px ui-monospace,monospace;color:#f5b83d;min-width:48px;direction:ltr;text-align:center}
@@ -1370,22 +1374,59 @@ const UNIT={V:'V',I:'A',R:'Ω'};
 const pname=p=>p.ti!==undefined ? `V(${p.c.label}.${pinName(p.c,p.ti)})` : `${p.kind==='I'?'I':p.kind}(${p.c.label})`;
 function renderChips(){
   scopeWrap.style.display = probes.length ? 'flex' : 'none';
-  chips.innerHTML = probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><small class="pf" id="pf${i}"></small><button data-i="${i}" title="إزالة">✕</button></span>`).join('')
-    + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><button class="sb ${scopeAuto?'on':''}" id="sAuto" title="عرض زمني تلقائي: بضع دورات من الإشارة">تلقائي</button><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
+  chips.innerHTML = '<span class="chipsRow">'+probes.map((p,i)=>`<span class="chip" style="border-color:${p.col}55"><i style="background:${p.col}"></i><span>${pname(p)}</span><b id="pv${i}" style="color:${p.col}"></b><small class="pf" id="pf${i}"></small><button data-i="${i}" title="إزالة">✕</button></span>`).join('')+'</span>'
+    + `<span class="hint" id="sT"></span><span class="sbtns"><span class="seg"><button class="sb ${scopeMode==='time'?'on':''}" data-m="time" title="الإشارة مع الزمن">زمن</button><button class="sb ${scopeMode==='freq'?'on':''}" data-m="freq" title="الطيف: مطال كل تردد في الإشارة">تردد</button></span><select class="sb" id="sDiv" title="الزمن لكل مربع (time/div). تلقائي = بضع دورات من الإشارة"><option value="auto">تلقائي</option>${DIVSEL.map(d=>`<option value="${d}">${fmt(d,'s')}/div</option>`).join('')}</select><span class="trg" id="sTrg" title="مزامنة (Trigger): الرسم يبدأ دائماً من نفس النقطة بالموجة فتبقى واقفة">⊿</span><button class="sb" id="sZo" title="تصغير الزمن">−</button><button class="sb" id="sZi" title="تكبير الزمن">+</button><button class="sb live" id="scopeLive" title="العودة للزمن الحالي">● مباشر</button><span class="shelp" title="اسحب الراسم يمين/يسار للرجوع بالزمن، العجلة أو +/− للتكبير، مرّر للقراءة">?</span></span>`;
   chips.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ probes.splice(+b.dataset.i,1); renderChips(); renderCtx(); save(); });
-  scopeBtn('sAuto',()=>{ setAuto(!scopeAuto); if (scopeAuto) autoT=0; });
+  const sd=document.getElementById('sDiv'); sd.onchange=()=>{ if (sd.value==='auto'){ setAuto(true); autoT=0; scopeRight=null; } else setDiv(+sd.value); sd.blur(); }; updDivSel();
   scopeBtn('sZi',()=>{ setAuto(false); freezeScope(); scopeZoom=Math.max(0.002,scopeZoom/1.6); setRight(scopeRight,true); });
   scopeBtn('sZo',()=>{ setAuto(false); freezeScope(); scopeZoom=Math.min(10,scopeZoom*1.6); setRight(scopeRight,true); });
   scopeBtn('scopeLive',()=>{ scopeRight=null; });
   chips.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ scopeMode=b.dataset.m; renderChips(); });
   resize();
 }
-function setAuto(on){ scopeAuto=on; const b=document.getElementById('sAuto'); if (b) b.classList.toggle('on',on); }
+function setAuto(on){ scopeAuto=on; updDivSel(); }
+const DIVSEL=[]; for (let e=-6;e<=0;e++) for (const m of [1,2,5]) if (m*Math.pow(10,e)<=1.0001) DIVSEL.push(parseFloat((m*Math.pow(10,e)).toPrecision(2)));
+const curSpan=()=>speed*SCOPE_N/60*scopeZoom;
+function updDivSel(){
+  const sd=document.getElementById('sDiv'); if (!sd) return;
+  const d=curSpan()/10, o=sd.options[0];
+  o.textContent = '\u2067تلقائي\u2069 · '+fmt(d,'s')+'/div';
+  if (scopeAuto) sd.value='auto';
+  else { const k=DIVSEL.findIndex(x=>Math.abs(Math.log(x/d))<0.05); if (k>=0) sd.value=String(DIVSEL[k]); else { sd.value='auto'; o.textContent=fmt(d,'s')+'/div'; } }
+  sd.classList.toggle('on',scopeAuto);
+}
+// choose a time per division: the simulation speed follows so each screen has enough samples
+function setDiv(d){
+  const span=d*10; let fs=0; comps.forEach(c=>{ if (c.type==='V' && c.mode!=='dc') fs=Math.max(fs,c.freq); if (c.type==='CLK') fs=Math.max(fs,c.value); });
+  let sp=SPEEDS[0]; for (const v of SPEEDS) if (v<=span*6) sp=v;          // >= 250 samples across the screen
+  if (fs>0) sp=Math.min(sp, fitSpeed(fs));
+  setSpeed(sp); scopeZoom=Math.max(0.002,Math.min(10,span/(sp*SCOPE_N/60))); setAuto(false); scopeRight=null;
+}
+// trigger: latest rising crossing of the middle level that still leaves a full screen after it
+let scopeTrig=null;
+const TRIG_PRE=0.1;
+function findTrig(span,tEnd){
+  for (const p of probes){
+    const b=p.buf; if (b.length<10) continue;
+    const tS=Math.max(b[0].t, tEnd-Math.max(span*2.5, span));
+    let mn=Infinity, mx=-Infinity; const j0=lb(b,tS);
+    for (let j=j0;j<b.length;j++){ const v=b[j].v; if (isFinite(v)){ if (v<mn) mn=v; if (v>mx) mx=v; } }
+    const pp=mx-mn; if (!(pp > 1e-9+2e-3*Math.max(Math.abs(mn),Math.abs(mx)))) continue;
+    const lvl=(mn+mx)/2, h=pp*0.1; let armed=false, tc=null;
+    for (let j=Math.max(1,j0); j<b.length && b[j].t<=tEnd; j++){
+      const v=b[j].v, pv=b[j-1].v; if (!isFinite(v)||!isFinite(pv)) continue;
+      if (v<lvl-h) armed=true;
+      else if (armed && pv<lvl && v>=lvl){ tc=b[j-1].t+(lvl-pv)/((v-pv)||1)*(b[j].t-b[j-1].t); armed=false; }
+    }
+    if (tc!==null) return {t:tc, lvl, p};
+  }
+  return null;
+}
 const nice125=x=>{ const e=Math.pow(10,Math.floor(Math.log10(x))), m=x/e; return (m<=1?1:m<=2?2:m<=5?5:10)*e; };
 function autoSpan(tNow){
   const base=speed*SCOPE_N/60, dt=speed/(60*SUB); let fmin=Infinity;
   probes.forEach(p=>{ const f=measureF(p.buf, tNow-base*5, tNow); if (isFinite(f)&&f>0) fmin=Math.min(fmin,f); });
-  let tgt = isFinite(fmin) ? nice125(3/fmin) : base;                 // ~3-6 periods, or the default window
+  let tgt = isFinite(fmin) ? 10*nice125(0.3/fmin) : base;                 // ~3-6 periods, or the default window
   tgt=Math.max(dt*80, Math.min(base*20, tgt));
   if (Math.abs(Math.log(tgt/(base*scopeZoom)))>0.15){ scopeZoom=tgt/base; if (scopeRight!==null) setRight(scopeRight); }
 }
@@ -1489,7 +1530,20 @@ function drawScope(){
   // time window (in frequency mode it is the stretch of signal that is analysed)
   let tNow=0; probes.forEach(p=>{ if (p.buf.length) tNow=Math.max(tNow,p.buf[p.buf.length-1].t); });
   if (scopeAuto && scopeRight===null && performance.now()-autoT>500){ autoT=performance.now(); autoSpan(tNow); }
-  const span=speed*SCOPE_N/60*scopeZoom; let tR=scopeRight===null?tNow:Math.min(scopeRight,tNow); const tL=tR-span; tNow=tR;
+  const span=speed*SCOPE_N/60*scopeZoom; let tR=scopeRight===null?tNow:Math.min(scopeRight,tNow);
+  // live + fast sweep: lock the picture to a trigger point so a periodic wave stands still
+  // fast sweeps show the latest complete sweep; slower ones draw left to right from the trigger like a real scope
+  scopeTrig=null;
+  if (scopeRight===null && !FQ && running && span/speed<25){
+    const tr=findTrig(span, span/speed<1.5 ? tNow-span*(1-TRIG_PRE) : tNow);
+    const sw=drawScope.sw, done=!sw || Math.abs(sw.span/span-1)>1e-6 || tNow>=sw.t+span*(1-TRIG_PRE) || sw.t>tNow;
+    if (tr && (done ? (!sw || tr.t>sw.t) : false)) drawScope.sw={t:tr.t, span};
+    else if (!tr && done) drawScope.sw=null;
+    if (drawScope.sw && drawScope.sw.t<=tNow && tNow-drawScope.sw.t<span*3){ scopeTrig=drawScope.sw; tR=scopeTrig.t+span*(1-TRIG_PRE); }
+  } else drawScope.sw=null;
+  const trgEl=document.getElementById('sTrg'); if (trgEl) trgEl.classList.toggle('on',!!scopeTrig);
+  if (performance.now()-(drawScope.dv||0)>400){ drawScope.dv=performance.now(); updDivSel(); }
+  const tL=tR-span; tNow=tR;
   scopeLay={X0,X1,PW,span,tR};
   document.getElementById('scopeLive').style.display = scopeRight===null ? 'none' : 'inline-flex';
   let specs=null, Fx=1, dfMin=Infinity;
@@ -1526,6 +1580,10 @@ function drawScope(){
   g.font='10.5px ui-monospace,monospace'; g.direction='ltr'; g.textBaseline='top'; g.textAlign='center';
   if (FQ){ const fs=niceStep(Fx/6);
     for (let f=0; f<=Fx+1e-9; f+=fs){ const x=Math.round(xt(f))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.fillStyle='#6b7583'; g.fillText(fmt(f,'Hz'), Math.min(x,X1-18), Y1+5); }
+  } else if (scopeTrig || scopeRight!==null || !running){ const dv=span/10, t0=scopeTrig?scopeTrig.t:0, every=PW/10<58?2:1;
+    for (let k=0;k<=10;k++){ const x=Math.round(X0+PW*k/10)+0.5; g.strokeStyle=k===1&&scopeTrig?'#3a4451':'#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke();
+      if (k%every===0 && k<10 || k===10 && every===1){ const t=tL+k*dv-t0; if (!scopeTrig && t<0) continue; g.fillStyle='#6b7583'; g.fillText(fmt(Math.abs(t)<dv*1e-3?0:t,'s'), Math.max(X0+14,Math.min(x,X1-18)), Y1+5); } }
+    if (scopeTrig){ const x=X0+PW*TRIG_PRE; g.fillStyle='#f5b83d'; g.beginPath(); g.moveTo(x-5,Y0); g.lineTo(x+5,Y0); g.lineTo(x,Y0+7); g.closePath(); g.fill(); }
   } else { const tstep=niceStep(span/7);
     for (let t=Math.ceil(tL/tstep)*tstep; t<=tNow+1e-12; t+=tstep){ if (t<0) continue;
       const x=Math.round(xt(t))+0.5; g.strokeStyle='#1b222b'; g.beginPath(); g.moveTo(x,Y0); g.lineTo(x,Y1); g.stroke(); g.fillStyle='#6b7583'; g.fillText(fmt(t,'s'), x, Y1+5); }
